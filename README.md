@@ -1,4 +1,4 @@
-# Pointr
+# [Pointr](https://pointr.chrisbutler.workers.dev/)
 
 Fast, free planning poker for agile teams
 
