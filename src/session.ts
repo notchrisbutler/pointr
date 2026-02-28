@@ -26,6 +26,8 @@ export class PokerSession extends DurableObject {
   private storyDescription: string = '';
   private roundStartTime: number = 0;
   private pointValues: (number | string)[] = DEFAULT_POINT_VALUES;
+  private stories: string[] = [];
+  private currentStoryIndex: number = 0;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -118,6 +120,11 @@ export class PokerSession extends DurableObject {
           player.vote = null;
           socket.serializeAttachment({ name: player.name, vote: null, isObserver: player.isObserver });
         }
+        // Auto-advance to next story if stories are loaded
+        if (this.stories.length > 0 && this.currentStoryIndex < this.stories.length - 1) {
+          this.currentStoryIndex++;
+          this.storyDescription = this.stories[this.currentStoryIndex];
+        }
         this.broadcastState();
         break;
       }
@@ -125,6 +132,52 @@ export class PokerSession extends DurableObject {
       case 'story': {
         const rawDescription = String(data.text ?? '').slice(0, 2000);
         this.storyDescription = rawDescription;
+        this.broadcastState();
+        break;
+      }
+
+      case 'set-stories': {
+        const raw = data.stories;
+        if (!Array.isArray(raw)) {
+          ws.send(JSON.stringify({ type: 'error', message: 'stories must be an array' }));
+          return;
+        }
+        this.stories = raw
+          .map((s: unknown) => String(s ?? '').trim())
+          .filter((s: string) => s.length > 0)
+          .slice(0, 50);
+        this.currentStoryIndex = 0;
+        if (this.stories.length > 0) {
+          this.storyDescription = this.stories[0];
+        }
+        this.broadcastState();
+        break;
+      }
+
+      case 'story-next': {
+        if (this.stories.length > 0 && this.currentStoryIndex < this.stories.length - 1) {
+          this.currentStoryIndex++;
+          this.storyDescription = this.stories[this.currentStoryIndex];
+        }
+        this.broadcastState();
+        break;
+      }
+
+      case 'story-prev': {
+        if (this.stories.length > 0 && this.currentStoryIndex > 0) {
+          this.currentStoryIndex--;
+          this.storyDescription = this.stories[this.currentStoryIndex];
+        }
+        this.broadcastState();
+        break;
+      }
+
+      case 'story-goto': {
+        const idx = Number(data.index);
+        if (this.stories.length > 0 && Number.isInteger(idx) && idx >= 0 && idx < this.stories.length) {
+          this.currentStoryIndex = idx;
+          this.storyDescription = this.stories[this.currentStoryIndex];
+        }
         this.broadcastState();
         break;
       }
@@ -160,6 +213,8 @@ export class PokerSession extends DurableObject {
       story: this.storyDescription,
       roundStartTime: this.roundStartTime,
       pointValues: this.pointValues,
+      stories: this.stories,
+      currentStoryIndex: this.currentStoryIndex,
     });
 
     for (const ws of this.ctx.getWebSockets()) {
