@@ -28,6 +28,7 @@ export class PokerSession extends DurableObject {
   private pointValues: (number | string)[] = DEFAULT_POINT_VALUES;
   private stories: string[] = [];
   private currentStoryIndex: number = 0;
+  private sessionReady: boolean = false;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -136,12 +137,19 @@ export class PokerSession extends DurableObject {
         break;
       }
 
+      case 'skip-setup': {
+        this.sessionReady = true;
+        this.broadcastState();
+        break;
+      }
+
       case 'set-stories': {
         const raw = data.stories;
         if (!Array.isArray(raw)) {
           ws.send(JSON.stringify({ type: 'error', message: 'stories must be an array' }));
           return;
         }
+        this.sessionReady = true;
         this.stories = raw
           .map((s: unknown) => String(s ?? '').trim())
           .filter((s: string) => s.length > 0)
@@ -217,6 +225,7 @@ export class PokerSession extends DurableObject {
       pointValues: this.pointValues,
       stories: this.stories,
       currentStoryIndex: this.currentStoryIndex,
+      sessionReady: this.sessionReady,
     });
 
     for (const ws of this.ctx.getWebSockets()) {

@@ -10,7 +10,7 @@ export const CLIENT_JS = `(function() {
   var lastRoundStartTime = null;
   var storyDebounceTimer = null;
   var localStories = [];
-  var storiesLocked = false;
+  var hasEnteredSession = false;
 
   // ── DOM refs ──
   var lobby = document.getElementById('lobby');
@@ -138,14 +138,21 @@ export const CLIENT_JS = `(function() {
       storyProgress.textContent = (data.currentStoryIndex + 1) + ' of ' + data.stories.length;
       storyPrevBtn.disabled = data.currentStoryIndex === 0;
       storyNextBtn.disabled = data.currentStoryIndex === data.stories.length - 1;
-      // If stories were set by another user, skip the setup screen
-      if (!storiesLocked) {
-        storiesLocked = true;
-        storySetup.classList.add('hidden');
-        session.classList.remove('hidden');
-      }
     } else {
       storyNav.classList.add('hidden');
+    }
+
+    // Session entry: decide whether to show story setup or go straight to session
+    if (!hasEnteredSession) {
+      hasEnteredSession = true;
+      if (data.sessionReady) {
+        // Session already started — go straight to session (late joiner)
+        storySetup.classList.add('hidden');
+        session.classList.remove('hidden');
+      } else {
+        // Fresh room — show story setup (creator)
+        storySetup.classList.remove('hidden');
+      }
     }
 
     // Primary action button state:
@@ -306,8 +313,8 @@ export const CLIENT_JS = `(function() {
     name = nameInput.value.trim();
     isObserver = observer;
     lobby.classList.add('hidden');
-    // Show story setup screen instead of going directly to session
-    storySetup.classList.remove('hidden');
+    // Don't show anything yet — wait for first state message to decide
+    // whether to show story setup (creator) or go straight to session (late joiner)
     connect();
   }
 
@@ -429,18 +436,19 @@ export const CLIENT_JS = `(function() {
   });
 
   storyStartBtn.addEventListener('click', function() {
-    storiesLocked = true;
     storySetup.classList.add('hidden');
     session.classList.remove('hidden');
     if (localStories.length > 0) {
       send({ type: 'set-stories', stories: localStories });
+    } else {
+      send({ type: 'skip-setup' });
     }
   });
 
   storySkipBtn.addEventListener('click', function() {
-    storiesLocked = true;
     storySetup.classList.add('hidden');
     session.classList.remove('hidden');
+    send({ type: 'skip-setup' });
   });
 
   // ── Story navigation ──
