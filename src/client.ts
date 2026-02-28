@@ -6,9 +6,10 @@ export const CLIENT_JS = `(function() {
   var name = '';
   var isObserver = false;
   var selectedVote = null;
-  var timerInterval = null;
+  var votingInterval = null;
+  var discussionInterval = null;
   var lastRoundStartTime = null;
-  var storyDebounceTimer = null;
+  var lastTimerKey = null;
   var localStories = [];
   var hasEnteredSession = false;
 
@@ -19,12 +20,14 @@ export const CLIENT_JS = `(function() {
   var joinPlayerBtn = document.getElementById('join-player-btn');
   var joinObserverBtn = document.getElementById('join-observer-btn');
   var sessionIdCopy = document.getElementById('session-id-copy');
-  var timerEl = document.getElementById('timer');
+  var votingTimerEl = document.getElementById('timer-voting');
+  var discussionTimerEl = document.getElementById('timer-discussion');
   var storyEl = document.getElementById('story');
   var cardsRow = document.getElementById('cards-row');
   var showVotesBtn = document.getElementById('show-votes-btn');
   var newRoundBtn = document.getElementById('new-round-btn');
-  var statsRow = document.getElementById('stats-row');
+  var resultsRow = document.getElementById('results-row');
+  var finalCardsEl = document.getElementById('final-cards');
   var statAverage = document.getElementById('stat-average');
   var statMedian = document.getElementById('stat-median');
   var statVotes = document.getElementById('stat-votes');
@@ -42,6 +45,18 @@ export const CLIENT_JS = `(function() {
   var storyProgress = document.getElementById('story-progress');
 
   var sessionId = document.body.dataset.sessionId;
+  var joinCountEl = document.getElementById('join-count');
+
+  // Fetch player count for lobby
+  fetch('/api/' + sessionId + '/info')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.playerCount > 0) {
+        joinCountEl.textContent = 'Join ' + data.playerCount + ' other' + (data.playerCount === 1 ? '' : 's') + '!';
+        joinCountEl.classList.remove('hidden');
+      }
+    })
+    .catch(function() {});
 
   // ── Helpers ──
 
@@ -98,6 +113,14 @@ export const CLIENT_JS = `(function() {
   // ── State handling ──
 
   function handleState(data) {
+    // Timers — only update when timer-relevant state changes
+    lastRoundStartTime = data.roundStartTime;
+    var timerKey = data.roundStartTime + ':' + data.revealTime + ':' + data.finalVote;
+    if (timerKey !== lastTimerKey) {
+      lastTimerKey = timerKey;
+      updateTimers(data.roundStartTime, data.revealTime, data.finalVote);
+    }
+
     // Render cards from pointValues (skip if observer)
     renderCards(data.pointValues, data.revealed);
 
@@ -117,18 +140,13 @@ export const CLIENT_JS = `(function() {
       storyEl.placeholder = 'Paste a story, ticket URL, or description\\u2026';
     }
 
-    // Timer
-    if (data.roundStartTime !== lastRoundStartTime) {
-      lastRoundStartTime = data.roundStartTime;
-      startTimer(data.roundStartTime);
-    }
-
-    // Show/hide stats
+    // Show/hide results
     if (data.revealed) {
       renderStats(data.players);
-      statsRow.classList.remove('hidden');
+      renderFinalCards(data.players, data.finalVote);
+      resultsRow.classList.remove('hidden');
     } else {
-      statsRow.classList.add('hidden');
+      resultsRow.classList.add('hidden');
     }
 
     // Story navigation
@@ -144,14 +162,19 @@ export const CLIENT_JS = `(function() {
     // Session entry: decide whether to show story setup or go straight to session
     if (!hasEnteredSession) {
       hasEnteredSession = true;
-      if (data.sessionReady) {
-        // Session already started — go straight to session (late joiner)
-        storySetup.classList.add('hidden');
-        session.classList.remove('hidden');
-      } else {
-        // Fresh room — show story setup (creator)
-        storySetup.classList.remove('hidden');
-      }
+      var target = data.sessionReady ? session : storySetup;
+      // Fade out lobby, then fade in target
+      lobby.classList.add('view-exit');
+      setTimeout(function() {
+        lobby.classList.add('hidden');
+        lobby.classList.remove('view-exit');
+        target.classList.remove('hidden');
+        target.classList.add('view-enter');
+        // Remove animation class after it completes
+        setTimeout(function() {
+          target.classList.remove('view-enter');
+        }, 250);
+      }, 200);
     }
 
     // Primary action button state:
@@ -181,6 +204,8 @@ export const CLIENT_JS = `(function() {
     }
     cardsRow.parentElement.classList.remove('hidden');
 
+    var roundNotStarted = lastRoundStartTime === 0 || lastRoundStartTime === null;
+
     // Clear existing cards using safe DOM method
     while (cardsRow.firstChild) {
       cardsRow.removeChild(cardsRow.firstChild);
@@ -192,7 +217,7 @@ export const CLIENT_JS = `(function() {
       if (String(selectedVote) === String(val)) {
         btn.classList.add('selected');
       }
-      if (revealed) {
+      if (revealed || roundNotStarted) {
         btn.classList.add('disabled');
       }
       btn.setAttribute('data-value', String(val));
@@ -287,23 +312,109 @@ export const CLIENT_JS = `(function() {
     statVotes.textContent = String(numericVotes.length);
   }
 
+  // ── Final cards ──
+
+  function renderFinalCards(players, finalVote) {
+    while (finalCardsEl.firstChild) {
+      finalCardsEl.removeChild(finalCardsEl.firstChild);
+    }
+    // Collect unique voted values (non-null, non-observer)
+    var seen = {};
+    var uniqueVotes = [];
+    players.forEach(function(p) {
+      if (!p.isObserver && p.vote !== null) {
+        var key = String(p.vote);
+        if (!seen[key]) {
+          seen[key] = true;
+          uniqueVotes.push(p.vote);
+        }
+      }
+    });
+    // Sort numeric values, put non-numeric at end
+    uniqueVotes.sort(function(a, b) {
+      var na = Number(a), nb = Number(b);
+      if (!isNaN(na) && !isNaN(nb)) return na - nb;
+      if (!isNaN(na)) return -1;
+      if (!isNaN(nb)) return 1;
+      return String(a).localeCompare(String(b));
+    });
+    uniqueVotes.forEach(function(val) {
+      var btn = document.createElement('button');
+      btn.className = 'final-card';
+      if (String(finalVote) === String(val)) {
+        btn.classList.add('selected');
+      }
+      btn.setAttribute('data-value', String(val));
+      btn.textContent = val === 'coffee' ? '\\u2615' : val === 0.5 ? '\\u00BD' : String(val);
+      finalCardsEl.appendChild(btn);
+    });
+  }
+
+  finalCardsEl.addEventListener('click', function(e) {
+    var card = e.target.closest('.final-card');
+    if (!card) return;
+    var value = card.getAttribute('data-value');
+    var parsed = isNaN(Number(value)) ? value : Number(value);
+    // Toggle: if already selected, deselect
+    var currentlySelected = card.classList.contains('selected');
+    send({ type: 'final', value: currentlySelected ? null : parsed });
+  });
+
   // ── Timer ──
 
-  function startTimer(roundStartTime) {
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-    }
+
+  function clearTimers() {
+    if (votingInterval) { clearInterval(votingInterval); votingInterval = null; }
+    if (discussionInterval) { clearInterval(discussionInterval); discussionInterval = null; }
+  }
+
+  function updateTimers(roundStartTime, revealTime, finalVote) {
+    clearTimers();
+
+    // Both stopped
     if (roundStartTime === 0) {
-      timerEl.textContent = '0:00';
+      votingTimerEl.textContent = '0:00';
+      votingTimerEl.className = 'timer';
+      discussionTimerEl.textContent = '0:00';
+      discussionTimerEl.className = 'timer timer-dim';
       return;
     }
-    function tick() {
-      var elapsed = Math.max(0, Math.floor((Date.now() - roundStartTime) / 1000));
-      timerEl.textContent = formatTime(elapsed);
+
+    // Voting active, discussion waiting
+    if (revealTime === 0) {
+      discussionTimerEl.textContent = '0:00';
+      discussionTimerEl.className = 'timer timer-dim';
+      function voteTick() {
+        var elapsed = Math.max(0, Math.floor((Date.now() - roundStartTime) / 1000));
+        votingTimerEl.textContent = formatTime(elapsed);
+        votingTimerEl.className = 'timer';
+      }
+      voteTick();
+      votingInterval = setInterval(voteTick, 1000);
+      return;
     }
-    tick();
-    timerInterval = setInterval(tick, 1000);
+
+    // Revealed — voting frozen
+    var votingElapsed = Math.max(0, Math.floor((revealTime - roundStartTime) / 1000));
+    votingTimerEl.textContent = formatTime(votingElapsed);
+
+    if (finalVote !== null) {
+      // Final selected — both frozen, both full white
+      votingTimerEl.className = 'timer';
+      discussionTimerEl.className = 'timer';
+      // No intervals — just preserve current discussion time
+      return;
+    }
+
+    // No final — voting dimmed, discussion ticking
+    votingTimerEl.className = 'timer timer-dim';
+    function discTick() {
+      var elapsed = Math.max(0, Math.floor((Date.now() - revealTime) / 1000));
+      discussionTimerEl.textContent = formatTime(elapsed);
+      discussionTimerEl.className = 'timer';
+    }
+    discTick();
+    discussionInterval = setInterval(discTick, 1000);
   }
 
   // ── Join logic ──
@@ -311,9 +422,10 @@ export const CLIENT_JS = `(function() {
   function join(observer) {
     name = nameInput.value.trim();
     isObserver = observer;
-    lobby.classList.add('hidden');
-    // Don't show anything yet — wait for first state message to decide
-    // whether to show story setup (creator) or go straight to session (late joiner)
+    // Disable buttons and show connecting state — don't hide yet
+    joinPlayerBtn.disabled = true;
+    joinObserverBtn.disabled = true;
+    joinPlayerBtn.textContent = 'Connecting\\u2026';
     connect();
   }
 
@@ -368,11 +480,8 @@ export const CLIENT_JS = `(function() {
     send({ type: 'clear' });
   });
 
-  storyEl.addEventListener('input', function() {
-    if (storyDebounceTimer) clearTimeout(storyDebounceTimer);
-    storyDebounceTimer = setTimeout(function() {
-      send({ type: 'story', text: storyEl.value });
-    }, 300);
+  storyEl.addEventListener('blur', function() {
+    send({ type: 'story', text: storyEl.value });
   });
 
   sessionIdCopy.addEventListener('click', function() {
@@ -435,13 +544,21 @@ export const CLIENT_JS = `(function() {
   });
 
   storyStartBtn.addEventListener('click', function() {
-    storySetup.classList.add('hidden');
-    session.classList.remove('hidden');
     if (localStories.length > 0) {
       send({ type: 'set-stories', stories: localStories });
     } else {
       send({ type: 'skip-setup' });
     }
+    storySetup.classList.add('view-exit');
+    setTimeout(function() {
+      storySetup.classList.add('hidden');
+      storySetup.classList.remove('view-exit');
+      session.classList.remove('hidden');
+      session.classList.add('view-enter');
+      setTimeout(function() {
+        session.classList.remove('view-enter');
+      }, 250);
+    }, 200);
   });
 
 

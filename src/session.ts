@@ -25,6 +25,8 @@ export class PokerSession extends DurableObject {
   private revealed: boolean = false;
   private storyDescription: string = '';
   private roundStartTime: number = 0;
+  private revealTime: number = 0;
+  private finalVote: string | number | null = null;
   private pointValues: (number | string)[] = DEFAULT_POINT_VALUES;
   private stories: string[] = [];
   private currentStoryIndex: number = 0;
@@ -45,7 +47,11 @@ export class PokerSession extends DurableObject {
     }
   }
 
-  async fetch(_request: Request): Promise<Response> {
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+    if (url.pathname.endsWith('/info')) {
+      return Response.json({ playerCount: this.players.size, sessionReady: this.sessionReady });
+    }
     const { 0: client, 1: server } = new WebSocketPair();
     this.ctx.acceptWebSocket(server);
     return new Response(null, { status: 101, webSocket: client });
@@ -64,11 +70,23 @@ export class PokerSession extends DurableObject {
 
     switch (type) {
       case 'join': {
-        const rawName = String(data.name ?? '').trim().slice(0, 30) || randomEmojiName();
+        let name = String(data.name ?? '').trim().slice(0, 30) || randomEmojiName();
+        // Ensure unique name
+        const takenNames = new Set(Array.from(this.players.values()).map(p => p.name));
+        if (takenNames.has(name)) {
+          let suffix = 2;
+          while (takenNames.has(name + ' ' + suffix)) suffix++;
+          name = name + ' ' + suffix;
+        }
         const isObserver = Boolean(data.isObserver);
-        const player: Player = { name: rawName, vote: null, isObserver };
+        // Only the first player gets story setup; everyone after goes straight to session
+        const isFirstPlayer = this.players.size === 0 && !this.sessionReady;
+        if (!isFirstPlayer && !this.sessionReady) {
+          this.sessionReady = true;
+        }
+        const player: Player = { name, vote: null, isObserver };
         this.players.set(ws, player);
-        ws.serializeAttachment({ name: rawName, vote: null, isObserver });
+        ws.serializeAttachment({ name, vote: null, isObserver });
         this.broadcastState();
         break;
       }
@@ -110,6 +128,22 @@ export class PokerSession extends DurableObject {
 
       case 'reveal': {
         this.revealed = true;
+        this.revealTime = Date.now();
+        this.broadcastState();
+        break;
+      }
+
+      case 'final': {
+        if (!this.revealed) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Can only set final during discussion' }));
+          return;
+        }
+        const fv = data.value;
+        if (fv === null) {
+          this.finalVote = null;
+        } else {
+          this.finalVote = fv as string | number;
+        }
         this.broadcastState();
         break;
       }
@@ -117,6 +151,8 @@ export class PokerSession extends DurableObject {
       case 'clear': {
         this.revealed = false;
         this.roundStartTime = 0;
+        this.revealTime = 0;
+        this.finalVote = null;
         for (const [socket, player] of this.players) {
           player.vote = null;
           socket.serializeAttachment({ name: player.name, vote: null, isObserver: player.isObserver });
@@ -224,6 +260,8 @@ export class PokerSession extends DurableObject {
       revealed: this.revealed,
       story: this.storyDescription,
       roundStartTime: this.roundStartTime,
+      revealTime: this.revealTime,
+      finalVote: this.finalVote,
       pointValues: this.pointValues,
       stories: this.stories,
       currentStoryIndex: this.currentStoryIndex,

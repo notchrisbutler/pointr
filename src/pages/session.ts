@@ -53,6 +53,7 @@ export function sessionPage(sessionId: string): string {
 
     .page-footer {
       flex-shrink: 0;
+      margin-top: auto;
       text-align: center;
       padding: 0.5rem;
       font-size: 0.6875rem;
@@ -70,6 +71,27 @@ export function sessionPage(sessionId: string): string {
 
     .hidden {
       display: none !important;
+    }
+
+    .view-exit {
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .view-enter {
+      animation: view-fade-in 0.25s ease both;
+    }
+
+    @keyframes view-fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* ── Lobby ── */
@@ -212,6 +234,13 @@ export function sessionPage(sessionId: string): string {
       font-weight: 500;
     }
 
+    .join-count {
+      text-align: center;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
     .join-buttons {
       display: flex;
       gap: 0.5rem;
@@ -267,6 +296,27 @@ export function sessionPage(sessionId: string): string {
       border-color: var(--accent);
     }
 
+    .timers-wrap {
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-end;
+    }
+
+    .timer-block {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.125rem;
+    }
+
+    .timer-label {
+      font-size: 0.625rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
     .timer {
       font-variant-numeric: tabular-nums;
       font-size: 1.5rem;
@@ -276,6 +326,11 @@ export function sessionPage(sessionId: string): string {
       min-width: 4ch;
       text-align: right;
     }
+
+    .timer-dim {
+      opacity: 0.35;
+    }
+
 
     /* ── Story textarea ── */
 
@@ -313,13 +368,13 @@ export function sessionPage(sessionId: string): string {
 
     .cards-row {
       display: flex;
-      flex-wrap: wrap;
       gap: 0.5rem;
     }
 
     .vote-card {
-      width: 64px;
-      height: 88px;
+      flex: 1;
+      min-width: 0;
+      height: 72px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -367,37 +422,93 @@ export function sessionPage(sessionId: string): string {
       flex: 1;
     }
 
-    /* ── Stats row ── */
+    /* ── Results row ── */
 
-    .stats-row {
+    .results-row {
       display: flex;
-      gap: 1.5rem;
-      justify-content: center;
+      align-items: center;
+      justify-content: space-between;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 1rem 1.5rem;
+      padding: 0.75rem 1.25rem;
+      gap: 1rem;
+    }
+
+    .stats-side {
+      display: flex;
+      gap: 1.25rem;
+      flex-shrink: 0;
     }
 
     .stat-item {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.25rem;
+      gap: 0.125rem;
     }
 
     .stat-value {
-      font-size: 1.5rem;
+      font-size: 1.25rem;
       font-weight: 700;
       color: var(--accent);
     }
 
     .stat-label {
-      font-size: 0.75rem;
+      font-size: 0.625rem;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      font-weight: 500;
+      font-weight: 600;
+    }
+
+    .final-side {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+    }
+
+    .final-label {
+      font-size: 0.625rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .final-cards {
+      display: flex;
+      gap: 0.375rem;
+    }
+
+    .final-card {
+      width: 40px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.15s;
+      user-select: none;
+    }
+
+    .final-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .final-card.selected {
+      background: #16a34a;
+      border-color: #16a34a;
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
     }
 
     /* ── Players section ── */
@@ -664,18 +775,24 @@ export function sessionPage(sessionId: string): string {
       }
 
       .cards-row {
+        flex-wrap: wrap;
         gap: 0.375rem;
       }
 
       .vote-card {
-        width: 56px;
-        height: 76px;
+        flex: 0 0 calc((100% - 5 * 0.375rem) / 6);
+        height: 56px;
         font-size: 1rem;
       }
 
-      .stats-row {
-        gap: 1rem;
-        padding: 0.75rem 1rem;
+      .results-row {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .final-side {
+        width: 100%;
+        justify-content: center;
       }
 
       .action-buttons {
@@ -705,12 +822,14 @@ export function sessionPage(sessionId: string): string {
         <input
           type="text"
           id="name-input"
-          placeholder="e.g. Alex"
+          placeholder="Leave blank for a random emoji"
           autocomplete="off"
           spellcheck="false"
           maxlength="32"
         >
       </div>
+
+      <p class="join-count hidden" id="join-count"></p>
 
       <div class="join-buttons">
         <button type="button" class="btn btn-primary" id="join-player-btn">Join as Player</button>
@@ -763,7 +882,16 @@ export function sessionPage(sessionId: string): string {
         <span>Session</span>
         <span class="session-id-copy" id="session-id-copy" title="Click to copy invite link">${sessionId}</span>
       </div>
-      <div class="timer" id="timer">0:00</div>
+      <div class="timers-wrap">
+        <div class="timer-block">
+          <span class="timer-label">Voting</span>
+          <span class="timer" id="timer-voting">0:00</span>
+        </div>
+        <div class="timer-block">
+          <span class="timer-label">Discussion</span>
+          <span class="timer" id="timer-discussion">0:00</span>
+        </div>
+      </div>
     </div>
 
     <!-- Story progress bar (hidden when no stories) -->
@@ -796,19 +924,25 @@ export function sessionPage(sessionId: string): string {
       <button type="button" class="btn btn-secondary" id="new-round-btn">New Round</button>
     </div>
 
-    <!-- Stats row (hidden until reveal) -->
-    <div class="stats-row hidden" id="stats-row">
-      <div class="stat-item">
-        <span class="stat-value" id="stat-average">–</span>
-        <span class="stat-label">Average</span>
+    <!-- Stats + Final (hidden until reveal) -->
+    <div class="results-row hidden" id="results-row">
+      <div class="stats-side">
+        <div class="stat-item">
+          <span class="stat-value" id="stat-average">–</span>
+          <span class="stat-label">Avg</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="stat-median">–</span>
+          <span class="stat-label">Med</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="stat-votes">0</span>
+          <span class="stat-label">Votes</span>
+        </div>
       </div>
-      <div class="stat-item">
-        <span class="stat-value" id="stat-median">–</span>
-        <span class="stat-label">Median</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-value" id="stat-votes">0</span>
-        <span class="stat-label">Votes</span>
+      <div class="final-side">
+        <span class="final-label">Final</span>
+        <div class="final-cards" id="final-cards"></div>
       </div>
     </div>
 

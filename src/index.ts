@@ -16,6 +16,12 @@ app.post('/create', (c) => {
   return c.redirect('/' + id);
 });
 
+app.get('/api/:id/info', async (c) => {
+  const id = c.env.POKER_SESSION.idFromName(c.req.param('id'));
+  const stub = c.env.POKER_SESSION.get(id);
+  return stub.fetch(new Request(new URL('/info', c.req.url)));
+});
+
 app.get('/ws/:id', async (c) => {
   const upgradeHeader = c.req.header('Upgrade');
   if (upgradeHeader !== 'websocket') {
