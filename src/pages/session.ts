@@ -540,6 +540,10 @@ export function sessionPage(sessionId: string): string {
 
     /* ── Story setup ── */
 
+    .story-setup-card {
+      max-width: 600px;
+    }
+
     #story-setup {
       flex: 1;
       display: flex;
@@ -717,10 +721,10 @@ export function sessionPage(sessionId: string): string {
 
   <!-- ── Story Setup (shown after join, before stories are locked) ── -->
   <div id="story-setup" class="hidden">
-    <div class="card">
+    <div class="card story-setup-card">
       <div class="header">
         <h1>Pointr</h1>
-        <p class="session-label">Add stories to vote on in sequence, or start blank</p>
+        <p class="session-label">Optional — add stories to vote on in sequence</p>
       </div>
 
       <hr class="divider">
