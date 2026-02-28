@@ -105,9 +105,17 @@ export const CLIENT_JS = `(function() {
     // Render players
     renderPlayers(data.players, data.revealed);
 
-    // Update story if not focused
-    if (document.activeElement !== storyEl) {
+    // Update story — when stories are loaded, always update (textarea is read-only)
+    if (data.stories && data.stories.length > 0) {
       storyEl.value = data.story || '';
+      storyEl.readOnly = true;
+      storyEl.placeholder = 'Story loaded from list';
+    } else {
+      if (document.activeElement !== storyEl) {
+        storyEl.value = data.story || '';
+      }
+      storyEl.readOnly = false;
+      storyEl.placeholder = 'Paste a story, ticket URL, or description\\u2026';
     }
 
     // Timer
