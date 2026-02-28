@@ -1,0 +1,12 @@
+name = "pointr"
+main = "src/index.ts"
+compatibility_date = "2025-04-14"
+
+[durable_objects]
+bindings = [
+  { name = "POKER_SESSION", class_name = "PokerSession" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["PokerSession"]
