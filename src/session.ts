@@ -10,18 +10,25 @@ interface PlayerAttachment {
   name: string;
   vote: string | number | null;
   isObserver: boolean;
+  isHost: boolean;
 }
 
 const DEFAULT_POINT_VALUES: (number | string)[] = [0, 0.5, 1, 2, 3, 5, 8, 13, 20, 40, 100, '?'];
 
 const EMOJI_NAMES = ['🦊', '🐙', '🦄', '🐲', '🎲', '🌵', '🍕', '🚀', '🎸', '🌈', '🎪', '🐝', '🦋', '🎯', '🧩', '🌺', '🐼', '🦜', '🎭', '🔮'];
 
+const MAX_MESSAGES_PER_SECOND = 20;
+
 function randomEmojiName(): string {
   return EMOJI_NAMES[Math.floor(Math.random() * EMOJI_NAMES.length)];
 }
 
+interface PlayerState extends Player {
+  isHost: boolean;
+}
+
 export class PokerSession extends DurableObject {
-  private players: Map<WebSocket, Player> = new Map();
+  private players: Map<WebSocket, PlayerState> = new Map();
   private revealed: boolean = false;
   private storyDescription: string = '';
   private roundStartTime: number = 0;
@@ -31,10 +38,10 @@ export class PokerSession extends DurableObject {
   private stories: string[] = [];
   private currentStoryIndex: number = 0;
   private sessionReady: boolean = false;
+  private messageCounts: Map<WebSocket, { count: number; windowStart: number }> = new Map();
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
-    // Reconstruct player map from hibernated WebSockets
     for (const ws of this.ctx.getWebSockets()) {
       const attachment = ws.deserializeAttachment() as PlayerAttachment | null;
       if (attachment) {
@@ -42,6 +49,7 @@ export class PokerSession extends DurableObject {
           name: attachment.name,
           vote: attachment.vote,
           isObserver: attachment.isObserver,
+          isHost: attachment.isHost ?? false,
         });
       }
     }
@@ -57,7 +65,48 @@ export class PokerSession extends DurableObject {
     return new Response(null, { status: 101, webSocket: client });
   }
 
+  private checkRateLimit(ws: WebSocket): boolean {
+    const now = Date.now();
+    let entry = this.messageCounts.get(ws);
+    if (!entry || now - entry.windowStart >= 1000) {
+      entry = { count: 0, windowStart: now };
+      this.messageCounts.set(ws, entry);
+    }
+    entry.count++;
+    return entry.count <= MAX_MESSAGES_PER_SECOND;
+  }
+
+  private isHost(ws: WebSocket): boolean {
+    return this.players.get(ws)?.isHost === true;
+  }
+
+  private assignNewHost(): void {
+    for (const [ws, player] of this.players) {
+      if (!player.isObserver) {
+        player.isHost = true;
+        ws.serializeAttachment({ name: player.name, vote: player.vote, isObserver: player.isObserver, isHost: true });
+        return;
+      }
+    }
+  }
+
+  private hasHost(): boolean {
+    for (const player of this.players.values()) {
+      if (player.isHost) return true;
+    }
+    return false;
+  }
+
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    if (!this.checkRateLimit(ws)) {
+      ws.send(JSON.stringify({ type: 'error', message: 'Rate limit exceeded. Slow down.' }));
+      ws.close(1008, 'Rate limit exceeded');
+      this.players.delete(ws);
+      this.messageCounts.delete(ws);
+      this.broadcastState();
+      return;
+    }
+
     let data: Record<string, unknown>;
     try {
       data = JSON.parse(typeof message === 'string' ? message : new TextDecoder().decode(message));
@@ -68,10 +117,22 @@ export class PokerSession extends DurableObject {
 
     const type = data.type as string;
 
+    // Require join before any other message
+    if (type !== 'join' && !this.players.has(ws)) {
+      ws.send(JSON.stringify({ type: 'error', message: 'Must join first' }));
+      return;
+    }
+
+    // Host-only actions
+    const HOST_ACTIONS = new Set(['reveal', 'clear', 'start', 'story', 'set-stories', 'skip-setup', 'story-next', 'story-prev', 'story-goto', 'final', 'transfer-host']);
+    if (HOST_ACTIONS.has(type) && !this.isHost(ws)) {
+      ws.send(JSON.stringify({ type: 'error', message: 'Only the host can do that' }));
+      return;
+    }
+
     switch (type) {
       case 'join': {
         let name = String(data.name ?? '').trim().slice(0, 30) || randomEmojiName();
-        // Ensure unique name
         const takenNames = new Set(Array.from(this.players.values()).map(p => p.name));
         if (takenNames.has(name)) {
           let suffix = 2;
@@ -79,14 +140,14 @@ export class PokerSession extends DurableObject {
           name = name + ' ' + suffix;
         }
         const isObserver = Boolean(data.isObserver);
-        // Only the first player gets story setup; everyone after goes straight to session
         const isFirstPlayer = this.players.size === 0 && !this.sessionReady;
         if (!isFirstPlayer && !this.sessionReady) {
           this.sessionReady = true;
         }
-        const player: Player = { name, vote: null, isObserver };
+        const shouldBeHost = !isObserver && !this.hasHost();
+        const player: PlayerState = { name, vote: null, isObserver, isHost: shouldBeHost };
         this.players.set(ws, player);
-        ws.serializeAttachment({ name, vote: null, isObserver });
+        ws.serializeAttachment({ name, vote: null, isObserver, isHost: shouldBeHost });
         this.broadcastState();
         break;
       }
@@ -107,7 +168,6 @@ export class PokerSession extends DurableObject {
         }
         const voteValue = data.value;
         if (voteValue === null) {
-          // Allow null to deselect/clear vote
           player.vote = null;
         } else if (!this.pointValues.includes(voteValue as string | number)) {
           ws.send(JSON.stringify({ type: 'error', message: 'Invalid vote value' }));
@@ -115,7 +175,7 @@ export class PokerSession extends DurableObject {
         } else {
           player.vote = voteValue as string | number;
         }
-        ws.serializeAttachment({ name: player.name, vote: player.vote, isObserver: player.isObserver });
+        ws.serializeAttachment({ name: player.name, vote: player.vote, isObserver: player.isObserver, isHost: player.isHost });
         this.broadcastState();
         break;
       }
@@ -141,6 +201,9 @@ export class PokerSession extends DurableObject {
         const fv = data.value;
         if (fv === null) {
           this.finalVote = null;
+        } else if (!this.pointValues.includes(fv as string | number)) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Invalid final vote value' }));
+          return;
         } else {
           this.finalVote = fv as string | number;
         }
@@ -155,9 +218,8 @@ export class PokerSession extends DurableObject {
         this.finalVote = null;
         for (const [socket, player] of this.players) {
           player.vote = null;
-          socket.serializeAttachment({ name: player.name, vote: null, isObserver: player.isObserver });
+          socket.serializeAttachment({ name: player.name, vote: null, isObserver: player.isObserver, isHost: player.isHost });
         }
-        // Auto-advance to next story if stories are loaded; clear story for generic sessions
         if (this.stories.length > 0 && this.currentStoryIndex < this.stories.length - 1) {
           this.currentStoryIndex++;
           this.storyDescription = this.stories[this.currentStoryIndex];
@@ -189,7 +251,7 @@ export class PokerSession extends DurableObject {
         }
         this.sessionReady = true;
         this.stories = raw
-          .map((s: unknown) => String(s ?? '').trim())
+          .map((s: unknown) => String(s ?? '').trim().slice(0, 2000))
           .filter((s: string) => s.length > 0)
           .slice(0, 50);
         this.currentStoryIndex = 0;
@@ -230,6 +292,23 @@ export class PokerSession extends DurableObject {
         break;
       }
 
+      case 'transfer-host': {
+        const targetName = String(data.name ?? '').trim();
+        for (const [targetWs, targetPlayer] of this.players) {
+          if (targetPlayer.name === targetName && !targetPlayer.isObserver) {
+            const currentHost = this.players.get(ws)!;
+            currentHost.isHost = false;
+            ws.serializeAttachment({ name: currentHost.name, vote: currentHost.vote, isObserver: currentHost.isObserver, isHost: false });
+            targetPlayer.isHost = true;
+            targetWs.serializeAttachment({ name: targetPlayer.name, vote: targetPlayer.vote, isObserver: targetPlayer.isObserver, isHost: true });
+            this.broadcastState();
+            return;
+          }
+        }
+        ws.send(JSON.stringify({ type: 'error', message: 'Player not found or is an observer' }));
+        break;
+      }
+
       default: {
         ws.send(JSON.stringify({ type: 'error', message: `Unknown message type: ${type}` }));
       }
@@ -237,12 +316,22 @@ export class PokerSession extends DurableObject {
   }
 
   async webSocketClose(ws: WebSocket, _code: number, _reason: string, _wasClean: boolean): Promise<void> {
+    const wasHost = this.players.get(ws)?.isHost === true;
     this.players.delete(ws);
+    this.messageCounts.delete(ws);
+    if (wasHost) {
+      this.assignNewHost();
+    }
     this.broadcastState();
   }
 
   async webSocketError(ws: WebSocket, _error: unknown): Promise<void> {
+    const wasHost = this.players.get(ws)?.isHost === true;
     this.players.delete(ws);
+    this.messageCounts.delete(ws);
+    if (wasHost) {
+      this.assignNewHost();
+    }
     this.broadcastState();
   }
 
@@ -252,6 +341,7 @@ export class PokerSession extends DurableObject {
       voted: player.vote !== null,
       vote: this.revealed ? player.vote : null,
       isObserver: player.isObserver,
+      isHost: player.isHost,
     }));
 
     const stateMessage = JSON.stringify({
@@ -272,7 +362,6 @@ export class PokerSession extends DurableObject {
       try {
         ws.send(stateMessage);
       } catch {
-        // WebSocket may be in a closing state; clean up
         this.players.delete(ws);
       }
     }
