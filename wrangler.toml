@@ -10,3 +10,11 @@ bindings = [
 [[migrations]]
 tag = "v1"
 new_classes = ["PokerSession"]
+
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 100
+  period = 60
