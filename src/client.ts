@@ -12,6 +12,7 @@ export const CLIENT_JS = `(function() {
   var lastTimerKey = null;
   var localStories = [];
   var hasEnteredSession = false;
+  var amHost = false;
 
   // ── DOM refs ──
   var lobby = document.getElementById('lobby');
@@ -114,6 +115,10 @@ export const CLIENT_JS = `(function() {
 
   function handleState(data) {
     // Timers — only update when timer-relevant state changes
+    // Determine if we are the host
+    var me = data.players.find(function(p) { return p.name === name || p.name === name + ' 2'; });
+    amHost = me ? me.isHost : false;
+
     lastRoundStartTime = data.roundStartTime;
     var timerKey = data.roundStartTime + ':' + data.revealTime + ':' + data.finalVote;
     if (timerKey !== lastTimerKey) {
@@ -191,6 +196,18 @@ export const CLIENT_JS = `(function() {
       showVotesBtn.textContent = 'Show Votes';
       showVotesBtn.disabled = false;
     }
+
+    // Host-only controls visibility
+    showVotesBtn.style.display = amHost ? '' : 'none';
+    newRoundBtn.style.display = amHost ? '' : 'none';
+    if (data.stories && data.stories.length > 0) {
+      storyPrevBtn.style.display = amHost ? '' : 'none';
+      storyNextBtn.style.display = amHost ? '' : 'none';
+    }
+    // Story textarea: only host can edit in generic mode
+    if (!data.stories || data.stories.length === 0) {
+      storyEl.readOnly = !amHost;
+    }
   }
 
   // ── Render cards ──
@@ -250,6 +267,14 @@ export const CLIENT_JS = `(function() {
       var statusSpan = document.createElement('span');
       statusSpan.className = 'player-status';
 
+      if (p.isHost) {
+        var hostBadge = document.createElement('span');
+        hostBadge.className = 'observer-badge';
+        hostBadge.style.background = 'var(--accent)';
+        hostBadge.style.color = '#fff';
+        hostBadge.textContent = 'Host';
+        statusSpan.appendChild(hostBadge);
+      }
       if (p.isObserver) {
         var badge = document.createElement('span');
         badge.className = 'observer-badge';
