@@ -5,18 +5,42 @@ import { CLIENT_JS } from './client';
 
 type Bindings = {
   POKER_SESSION: DurableObjectNamespace;
+  RATE_LIMITER: RateLimiter;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
 
+// Security headers middleware
+app.use('*', async (c, next) => {
+  await next();
+  c.header('X-Frame-Options', 'DENY');
+  c.header('X-Content-Type-Options', 'nosniff');
+  c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+  c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  c.header(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' wss:"
+  );
+});
+
 app.get('/', (c) => c.html(homePage()));
 
-app.post('/create', (c) => {
-  const id = Math.random().toString(36).substring(2, 8);
+app.post('/create', async (c) => {
+  const ip = c.req.header('CF-Connecting-IP') || 'unknown';
+  const { success } = await c.env.RATE_LIMITER.limit({ key: `create:${ip}` });
+  if (!success) {
+    return c.text('Rate limit exceeded. Try again later.', 429);
+  }
+  const id = crypto.randomUUID().replace(/-/g, '').substring(0, 8);
   return c.redirect('/' + id);
 });
 
 app.get('/api/:id/info', async (c) => {
+  const ip = c.req.header('CF-Connecting-IP') || 'unknown';
+  const { success } = await c.env.RATE_LIMITER.limit({ key: `info:${ip}` });
+  if (!success) {
+    return c.json({ error: 'Rate limit exceeded' }, 429);
+  }
   const id = c.env.POKER_SESSION.idFromName(c.req.param('id'));
   const stub = c.env.POKER_SESSION.get(id);
   return stub.fetch(new Request(new URL('/info', c.req.url)));
@@ -26,6 +50,11 @@ app.get('/ws/:id', async (c) => {
   const upgradeHeader = c.req.header('Upgrade');
   if (upgradeHeader !== 'websocket') {
     return c.text('Expected WebSocket', 426);
+  }
+  const ip = c.req.header('CF-Connecting-IP') || 'unknown';
+  const { success } = await c.env.RATE_LIMITER.limit({ key: `ws:${ip}` });
+  if (!success) {
+    return c.text('Rate limit exceeded. Try again later.', 429);
   }
   const id = c.env.POKER_SESSION.idFromName(c.req.param('id'));
   const stub = c.env.POKER_SESSION.get(id);
