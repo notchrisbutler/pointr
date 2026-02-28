@@ -121,10 +121,12 @@ export class PokerSession extends DurableObject {
           player.vote = null;
           socket.serializeAttachment({ name: player.name, vote: null, isObserver: player.isObserver });
         }
-        // Auto-advance to next story if stories are loaded
+        // Auto-advance to next story if stories are loaded; clear story for generic sessions
         if (this.stories.length > 0 && this.currentStoryIndex < this.stories.length - 1) {
           this.currentStoryIndex++;
           this.storyDescription = this.stories[this.currentStoryIndex];
+        } else if (this.stories.length === 0) {
+          this.storyDescription = '';
         }
         this.broadcastState();
         break;
