@@ -112,9 +112,20 @@ export const CLIENT_JS = `(function() {
       statsRow.classList.add('hidden');
     }
 
-    // Toggle Show Votes button
-    showVotesBtn.textContent = data.revealed ? 'Votes Shown' : 'Show Votes';
-    showVotesBtn.disabled = data.revealed;
+    // Primary action button state:
+    // roundStartTime === 0 && !revealed → "Start Round"
+    // roundStartTime > 0 && !revealed   → "Show Votes"
+    // revealed                          → "Votes Shown" (disabled)
+    if (data.revealed) {
+      showVotesBtn.textContent = 'Votes Shown';
+      showVotesBtn.disabled = true;
+    } else if (data.roundStartTime === 0) {
+      showVotesBtn.textContent = 'Start Round';
+      showVotesBtn.disabled = false;
+    } else {
+      showVotesBtn.textContent = 'Show Votes';
+      showVotesBtn.disabled = false;
+    }
   }
 
   // ── Render cards ──
@@ -239,6 +250,11 @@ export const CLIENT_JS = `(function() {
   function startTimer(roundStartTime) {
     if (timerInterval) {
       clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    if (roundStartTime === 0) {
+      timerEl.textContent = '0:00';
+      return;
     }
     function tick() {
       var elapsed = Math.max(0, Math.floor((Date.now() - roundStartTime) / 1000));
@@ -302,7 +318,11 @@ export const CLIENT_JS = `(function() {
   });
 
   showVotesBtn.addEventListener('click', function() {
-    send({ type: 'reveal' });
+    if (lastRoundStartTime === 0) {
+      send({ type: 'start' });
+    } else {
+      send({ type: 'reveal' });
+    }
   });
 
   newRoundBtn.addEventListener('click', function() {

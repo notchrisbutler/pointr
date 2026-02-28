@@ -18,7 +18,7 @@ export class PokerSession extends DurableObject {
   private players: Map<WebSocket, Player> = new Map();
   private revealed: boolean = false;
   private storyDescription: string = '';
-  private roundStartTime: number = Date.now();
+  private roundStartTime: number = 0;
   private pointValues: (number | string)[] = DEFAULT_POINT_VALUES;
 
   constructor(ctx: DurableObjectState, env: Env) {
@@ -97,6 +97,12 @@ export class PokerSession extends DurableObject {
         break;
       }
 
+      case 'start': {
+        this.roundStartTime = Date.now();
+        this.broadcastState();
+        break;
+      }
+
       case 'reveal': {
         this.revealed = true;
         this.broadcastState();
@@ -105,7 +111,7 @@ export class PokerSession extends DurableObject {
 
       case 'clear': {
         this.revealed = false;
-        this.roundStartTime = Date.now();
+        this.roundStartTime = 0;
         for (const [socket, player] of this.players) {
           player.vote = null;
           socket.serializeAttachment({ name: player.name, vote: null, isObserver: player.isObserver });

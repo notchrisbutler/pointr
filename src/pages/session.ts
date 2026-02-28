@@ -592,7 +592,7 @@ export function sessionPage(sessionId: string): string {
 
     <!-- Action buttons -->
     <div class="action-buttons">
-      <button type="button" class="btn btn-primary" id="show-votes-btn">Show Votes</button>
+      <button type="button" class="btn btn-primary" id="show-votes-btn">Start Round</button>
       <button type="button" class="btn btn-secondary" id="new-round-btn">New Round</button>
     </div>
 
