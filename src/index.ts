@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { homePage } from './pages/home';
 
 type Bindings = {
   POKER_SESSION: DurableObjectNamespace;
@@ -6,8 +7,11 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-app.get('/', (c) => {
-  return c.text('Pointr - Coming Soon');
+app.get('/', (c) => c.html(homePage()));
+
+app.post('/create', (c) => {
+  const id = Math.random().toString(36).substring(2, 8);
+  return c.redirect('/' + id);
 });
 
 app.get('/ws/:id', async (c) => {
