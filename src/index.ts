@@ -10,15 +10,16 @@ app.get('/', (c) => {
   return c.text('Pointr - Coming Soon');
 });
 
-// Placeholder Durable Object stub — full implementation in Task 2
-export class PokerSession {
-  state: DurableObjectState;
-  constructor(state: DurableObjectState) {
-    this.state = state;
+app.get('/ws/:id', async (c) => {
+  const upgradeHeader = c.req.header('Upgrade');
+  if (upgradeHeader !== 'websocket') {
+    return c.text('Expected WebSocket', 426);
   }
-  async fetch(_request: Request): Promise<Response> {
-    return new Response('PokerSession stub');
-  }
-}
+  const id = c.env.POKER_SESSION.idFromName(c.req.param('id'));
+  const stub = c.env.POKER_SESSION.get(id);
+  return stub.fetch(c.req.raw);
+});
+
+export { PokerSession } from './session';
 
 export default app;
