@@ -21,7 +21,7 @@ export class PokerSession extends DurableObject {
   private roundStartTime: number = Date.now();
   private pointValues: (number | string)[] = DEFAULT_POINT_VALUES;
 
-  constructor(ctx: DurableObjectState, env: unknown) {
+  constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     // Reconstruct player map from hibernated WebSockets
     for (const ws of this.ctx.getWebSockets()) {
@@ -36,7 +36,7 @@ export class PokerSession extends DurableObject {
     }
   }
 
-  async fetch(request: Request): Promise<Response> {
+  async fetch(_request: Request): Promise<Response> {
     const { 0: client, 1: server } = new WebSocketPair();
     this.ctx.acceptWebSocket(server);
     return new Response(null, { status: 101, webSocket: client });
@@ -115,7 +115,7 @@ export class PokerSession extends DurableObject {
       }
 
       case 'story': {
-        const rawDescription = String(data.description ?? '').slice(0, 2000);
+        const rawDescription = String(data.text ?? '').slice(0, 2000);
         this.storyDescription = rawDescription;
         this.broadcastState();
         break;
