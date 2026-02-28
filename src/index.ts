@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { homePage } from './pages/home';
 import { sessionPage } from './pages/session';
+import { CLIENT_JS } from './client';
 
 type Bindings = {
   POKER_SESSION: DurableObjectNamespace;
@@ -26,6 +27,13 @@ app.get('/ws/:id', async (c) => {
 });
 
 export { PokerSession } from './session';
+
+app.get('/client.js', (c) => {
+  return c.body(CLIENT_JS, 200, {
+    'Content-Type': 'application/javascript',
+    'Cache-Control': 'public, max-age=3600',
+  });
+});
 
 app.get('/:id', (c) => {
   const id = c.req.param('id');
