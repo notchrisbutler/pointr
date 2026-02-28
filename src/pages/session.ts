@@ -494,6 +494,104 @@ export function sessionPage(sessionId: string): string {
       opacity: 1;
     }
 
+    /* ── Story setup ── */
+
+    .story-input-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .story-list-items {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+      min-height: 2rem;
+    }
+
+    .story-list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0.75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+    }
+
+    .story-list-item .story-text {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .story-list-item .story-num {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-right: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .story-list-item .story-remove {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0 0.25rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .story-list-item .story-remove:hover {
+      color: #ef4444;
+    }
+
+    /* ── Story nav bar ── */
+
+    .story-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 0.5rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .story-progress {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text);
+      min-width: 5ch;
+      text-align: center;
+    }
+
+    .btn-icon {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0.375rem 0.75rem;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn-icon:hover {
+      border-color: var(--accent);
+      background: var(--surface);
+    }
+
+    .btn-icon:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
     /* ── Responsive ── */
 
     @media (max-width: 480px) {
@@ -525,6 +623,10 @@ export function sessionPage(sessionId: string): string {
       }
 
       .action-buttons {
+        flex-direction: column;
+      }
+
+      .story-input-row {
         flex-direction: column;
       }
     }
@@ -561,6 +663,39 @@ export function sessionPage(sessionId: string): string {
     </div>
   </div>
 
+  <!-- ── Story Setup (shown after join, before stories are locked) ── -->
+  <div id="story-setup" class="hidden">
+    <div class="card" style="max-width:600px;margin:2rem auto;">
+      <div class="header">
+        <h1 style="font-size:1.5rem;">Add Stories</h1>
+        <p class="session-label">Optional — add stories to vote on in sequence</p>
+      </div>
+
+      <hr class="divider">
+
+      <div class="story-input-row">
+        <input
+          type="text"
+          id="story-add-input"
+          placeholder="Story title or ticket URL…"
+          autocomplete="off"
+          spellcheck="false"
+          maxlength="200"
+        >
+        <button type="button" class="btn btn-secondary" id="story-add-btn">Add</button>
+      </div>
+
+      <div id="story-list-items" class="story-list-items">
+        <!-- Rendered by client.js -->
+      </div>
+
+      <div class="join-buttons">
+        <button type="button" class="btn btn-primary" id="story-start-btn">Start Session</button>
+        <button type="button" class="btn btn-secondary" id="story-skip-btn">Skip — No Stories</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Session ── -->
   <div id="session" class="hidden">
 
@@ -571,6 +706,13 @@ export function sessionPage(sessionId: string): string {
         <span class="session-id-copy" id="session-id-copy" title="Click to copy invite link">${sessionId}</span>
       </div>
       <div class="timer" id="timer">0:00</div>
+    </div>
+
+    <!-- Story progress bar (hidden when no stories) -->
+    <div class="story-nav hidden" id="story-nav">
+      <button type="button" class="btn-icon" id="story-prev-btn" title="Previous story">&larr;</button>
+      <span class="story-progress" id="story-progress">1 of 5</span>
+      <button type="button" class="btn-icon" id="story-next-btn" title="Next story">&rarr;</button>
     </div>
 
     <!-- Story -->
