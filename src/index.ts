@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { homePage } from './pages/home';
+import { sessionPage } from './pages/session';
 
 type Bindings = {
   POKER_SESSION: DurableObjectNamespace;
@@ -25,5 +26,11 @@ app.get('/ws/:id', async (c) => {
 });
 
 export { PokerSession } from './session';
+
+app.get('/:id', (c) => {
+  const id = c.req.param('id');
+  if (id.length > 8 || !/^[a-z0-9]+$/.test(id)) return c.redirect('/');
+  return c.html(sessionPage(id));
+});
 
 export default app;
