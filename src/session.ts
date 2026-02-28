@@ -149,6 +149,8 @@ export class PokerSession extends DurableObject {
         this.currentStoryIndex = 0;
         if (this.stories.length > 0) {
           this.storyDescription = this.stories[0];
+        } else {
+          this.storyDescription = '';
         }
         this.broadcastState();
         break;
