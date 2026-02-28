@@ -494,6 +494,24 @@ export function sessionPage(sessionId: string): string {
       opacity: 1;
     }
 
+    /* ── Brand bar ── */
+
+    .brand-bar {
+      text-align: center;
+    }
+
+    .brand-link {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-decoration: none;
+      letter-spacing: -0.03em;
+    }
+
+    .brand-link:hover {
+      opacity: 0.8;
+    }
+
     /* ── Story setup ── */
 
     .story-input-row {
@@ -698,6 +716,11 @@ export function sessionPage(sessionId: string): string {
 
   <!-- ── Session ── -->
   <div id="session" class="hidden">
+
+    <!-- Brand header -->
+    <div class="brand-bar">
+      <a href="/" class="brand-link">Pointr</a>
+    </div>
 
     <!-- Top bar -->
     <div class="top-bar">
