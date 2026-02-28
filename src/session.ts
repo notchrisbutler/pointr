@@ -19,6 +19,8 @@ const EMOJI_NAMES = ['🦊', '🐙', '🦄', '🐲', '🎲', '🌵', '🍕', '�
 
 const MAX_MESSAGES_PER_SECOND = 20;
 
+const HOST_ACTIONS = new Set(['reveal', 'clear', 'start', 'story', 'set-stories', 'skip-setup', 'story-next', 'story-prev', 'story-goto', 'final', 'transfer-host']);
+
 function randomEmojiName(): string {
   return EMOJI_NAMES[Math.floor(Math.random() * EMOJI_NAMES.length)];
 }
@@ -100,6 +102,7 @@ export class PokerSession extends DurableObject {
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
     if (!this.checkRateLimit(ws)) {
       ws.send(JSON.stringify({ type: 'error', message: 'Rate limit exceeded. Slow down.' }));
+      ws.serializeAttachment(null);
       ws.close(1008, 'Rate limit exceeded');
       this.players.delete(ws);
       this.messageCounts.delete(ws);
@@ -123,8 +126,6 @@ export class PokerSession extends DurableObject {
       return;
     }
 
-    // Host-only actions
-    const HOST_ACTIONS = new Set(['reveal', 'clear', 'start', 'story', 'set-stories', 'skip-setup', 'story-next', 'story-prev', 'story-goto', 'final', 'transfer-host']);
     if (HOST_ACTIONS.has(type) && !this.isHost(ws)) {
       ws.send(JSON.stringify({ type: 'error', message: 'Only the host can do that' }));
       return;

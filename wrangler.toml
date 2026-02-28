@@ -12,9 +12,25 @@ tag = "v1"
 new_classes = ["PokerSession"]
 
 [[ratelimits]]
-name = "RATE_LIMITER"
+name = "RATE_LIMITER_CREATE"
 namespace_id = "1001"
 
   [ratelimits.simple]
-  limit = 100
+  limit = 10
+  period = 60
+
+[[ratelimits]]
+name = "RATE_LIMITER_WS"
+namespace_id = "1002"
+
+  [ratelimits.simple]
+  limit = 30
+  period = 60
+
+[[ratelimits]]
+name = "RATE_LIMITER_INFO"
+namespace_id = "1003"
+
+  [ratelimits.simple]
+  limit = 60
   period = 60

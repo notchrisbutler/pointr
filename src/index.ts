@@ -3,10 +3,7 @@ import { homePage } from './pages/home';
 import { sessionPage } from './pages/session';
 import { CLIENT_JS } from './client';
 
-type Bindings = {
-  POKER_SESSION: DurableObjectNamespace;
-  RATE_LIMITER: RateLimiter;
-};
+type Bindings = Env;
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -27,7 +24,7 @@ app.get('/', (c) => c.html(homePage()));
 
 app.post('/create', async (c) => {
   const ip = c.req.header('CF-Connecting-IP') || 'unknown';
-  const { success } = await c.env.RATE_LIMITER.limit({ key: `create:${ip}` });
+  const { success } = await c.env.RATE_LIMITER_CREATE.limit({ key: ip });
   if (!success) {
     return c.text('Rate limit exceeded. Try again later.', 429);
   }
@@ -37,7 +34,7 @@ app.post('/create', async (c) => {
 
 app.get('/api/:id/info', async (c) => {
   const ip = c.req.header('CF-Connecting-IP') || 'unknown';
-  const { success } = await c.env.RATE_LIMITER.limit({ key: `info:${ip}` });
+  const { success } = await c.env.RATE_LIMITER_INFO.limit({ key: ip });
   if (!success) {
     return c.json({ error: 'Rate limit exceeded' }, 429);
   }
@@ -52,7 +49,7 @@ app.get('/ws/:id', async (c) => {
     return c.text('Expected WebSocket', 426);
   }
   const ip = c.req.header('CF-Connecting-IP') || 'unknown';
-  const { success } = await c.env.RATE_LIMITER.limit({ key: `ws:${ip}` });
+  const { success } = await c.env.RATE_LIMITER_WS.limit({ key: ip });
   if (!success) {
     return c.text('Rate limit exceeded. Try again later.', 429);
   }

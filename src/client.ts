@@ -115,8 +115,13 @@ export const CLIENT_JS = `(function() {
 
   function handleState(data) {
     // Timers — only update when timer-relevant state changes
-    // Determine if we are the host
-    var me = data.players.find(function(p) { return p.name === name || p.name === name + ' 2'; });
+    // Determine if we are the host — match by name, updating local name if server deduplicated it
+    var me = data.players.find(function(p) { return p.name === name; });
+    if (!me) {
+      // Server may have added a suffix for deduplication — find our suffixed name
+      me = data.players.find(function(p) { return p.name.indexOf(name) === 0 && p.name !== name; });
+      if (me) { name = me.name; }
+    }
     amHost = me ? me.isHost : false;
 
     lastRoundStartTime = data.roundStartTime;
