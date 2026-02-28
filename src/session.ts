@@ -14,6 +14,12 @@ interface PlayerAttachment {
 
 const DEFAULT_POINT_VALUES: (number | string)[] = [0, 0.5, 1, 2, 3, 5, 8, 13, 20, 40, 100, '?'];
 
+const EMOJI_NAMES = ['🦊', '🐙', '🦄', '🐲', '🎲', '🌵', '🍕', '🚀', '🎸', '🌈', '🎪', '🐝', '🦋', '🎯', '🧩', '🌺', '🐼', '🦜', '🎭', '🔮'];
+
+function randomEmojiName(): string {
+  return EMOJI_NAMES[Math.floor(Math.random() * EMOJI_NAMES.length)];
+}
+
 export class PokerSession extends DurableObject {
   private players: Map<WebSocket, Player> = new Map();
   private revealed: boolean = false;
@@ -55,11 +61,7 @@ export class PokerSession extends DurableObject {
 
     switch (type) {
       case 'join': {
-        const rawName = String(data.name ?? '').trim().slice(0, 30);
-        if (!rawName) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Name is required' }));
-          return;
-        }
+        const rawName = String(data.name ?? '').trim().slice(0, 30) || randomEmojiName();
         const isObserver = Boolean(data.isObserver);
         const player: Player = { name: rawName, vote: null, isObserver };
         this.players.set(ws, player);

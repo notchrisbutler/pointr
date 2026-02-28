@@ -267,12 +267,7 @@ export const CLIENT_JS = `(function() {
   // ── Join logic ──
 
   function join(observer) {
-    var n = nameInput.value.trim();
-    if (!n) {
-      nameInput.focus();
-      return;
-    }
-    name = n;
+    name = nameInput.value.trim();
     isObserver = observer;
     lobby.classList.add('hidden');
     session.classList.remove('hidden');
