@@ -9,6 +9,8 @@ export const CLIENT_JS = `(function() {
   var timerInterval = null;
   var lastRoundStartTime = null;
   var storyDebounceTimer = null;
+  var localStories = [];
+  var storiesLocked = false;
 
   // ── DOM refs ──
   var lobby = document.getElementById('lobby');
@@ -29,6 +31,16 @@ export const CLIENT_JS = `(function() {
   var playersCount = document.getElementById('players-count');
   var playersList = document.getElementById('players-list');
   var toastEl = document.getElementById('toast');
+  var storySetup = document.getElementById('story-setup');
+  var storyAddInput = document.getElementById('story-add-input');
+  var storyAddBtn = document.getElementById('story-add-btn');
+  var storyListItems = document.getElementById('story-list-items');
+  var storyStartBtn = document.getElementById('story-start-btn');
+  var storySkipBtn = document.getElementById('story-skip-btn');
+  var storyNav = document.getElementById('story-nav');
+  var storyPrevBtn = document.getElementById('story-prev-btn');
+  var storyNextBtn = document.getElementById('story-next-btn');
+  var storyProgress = document.getElementById('story-progress');
 
   var sessionId = document.body.dataset.sessionId;
 
@@ -110,6 +122,22 @@ export const CLIENT_JS = `(function() {
       statsRow.classList.remove('hidden');
     } else {
       statsRow.classList.add('hidden');
+    }
+
+    // Story navigation
+    if (data.stories && data.stories.length > 0) {
+      storyNav.classList.remove('hidden');
+      storyProgress.textContent = (data.currentStoryIndex + 1) + ' of ' + data.stories.length;
+      storyPrevBtn.disabled = data.currentStoryIndex === 0;
+      storyNextBtn.disabled = data.currentStoryIndex === data.stories.length - 1;
+      // If stories were set by another user, skip the setup screen
+      if (!storiesLocked) {
+        storiesLocked = true;
+        storySetup.classList.add('hidden');
+        session.classList.remove('hidden');
+      }
+    } else {
+      storyNav.classList.add('hidden');
     }
 
     // Primary action button state:
@@ -270,7 +298,8 @@ export const CLIENT_JS = `(function() {
     name = nameInput.value.trim();
     isObserver = observer;
     lobby.classList.add('hidden');
-    session.classList.remove('hidden');
+    // Show story setup screen instead of going directly to session
+    storySetup.classList.remove('hidden');
     connect();
   }
 
@@ -336,6 +365,84 @@ export const CLIENT_JS = `(function() {
     navigator.clipboard.writeText(location.href).then(function() {
       showToast('Invite link copied!');
     });
+  });
+
+  // ── Story setup ──
+
+  function renderLocalStories() {
+    while (storyListItems.firstChild) {
+      storyListItems.removeChild(storyListItems.firstChild);
+    }
+    localStories.forEach(function(text, i) {
+      var item = document.createElement('div');
+      item.className = 'story-list-item';
+
+      var numSpan = document.createElement('span');
+      numSpan.className = 'story-num';
+      numSpan.textContent = String(i + 1) + '.';
+      item.appendChild(numSpan);
+
+      var textSpan = document.createElement('span');
+      textSpan.className = 'story-text';
+      textSpan.textContent = text;
+      item.appendChild(textSpan);
+
+      var removeBtn = document.createElement('button');
+      removeBtn.className = 'story-remove';
+      removeBtn.textContent = '\\u00d7';
+      removeBtn.setAttribute('data-index', String(i));
+      item.appendChild(removeBtn);
+
+      storyListItems.appendChild(item);
+    });
+  }
+
+  storyAddBtn.addEventListener('click', function() {
+    var text = storyAddInput.value.trim();
+    if (!text) return;
+    localStories.push(text);
+    storyAddInput.value = '';
+    renderLocalStories();
+    storyAddInput.focus();
+  });
+
+  storyAddInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      storyAddBtn.click();
+    }
+  });
+
+  storyListItems.addEventListener('click', function(e) {
+    var btn = e.target.closest('.story-remove');
+    if (!btn) return;
+    var idx = Number(btn.getAttribute('data-index'));
+    localStories.splice(idx, 1);
+    renderLocalStories();
+  });
+
+  storyStartBtn.addEventListener('click', function() {
+    storiesLocked = true;
+    storySetup.classList.add('hidden');
+    session.classList.remove('hidden');
+    if (localStories.length > 0) {
+      send({ type: 'set-stories', stories: localStories });
+    }
+  });
+
+  storySkipBtn.addEventListener('click', function() {
+    storiesLocked = true;
+    storySetup.classList.add('hidden');
+    session.classList.remove('hidden');
+  });
+
+  // ── Story navigation ──
+
+  storyPrevBtn.addEventListener('click', function() {
+    send({ type: 'story-prev' });
+  });
+
+  storyNextBtn.addEventListener('click', function() {
+    send({ type: 'story-next' });
   });
 
 })();
