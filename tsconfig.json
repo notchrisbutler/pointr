@@ -6,8 +6,7 @@
     "strict": true,
     "lib": ["ESNext"],
     "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
-    "types": ["@cloudflare/workers-types"]
+    "jsxImportSource": "hono/jsx"
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }
