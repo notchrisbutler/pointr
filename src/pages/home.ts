@@ -38,15 +38,43 @@ export function homePage(): string {
       padding: 0;
     }
 
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       background: var(--bg);
       color: var(--text);
-      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page-main {
+      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 1rem;
+      min-height: 0;
+    }
+
+    .page-footer {
+      flex-shrink: 0;
+      text-align: center;
+      padding: 0.5rem;
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+    }
+
+    .page-footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    .page-footer a:hover {
+      color: var(--accent);
     }
 
     .card {
@@ -195,6 +223,7 @@ export function homePage(): string {
   </style>
 </head>
 <body>
+  <div class="page-main">
   <div class="card">
     <div class="header">
       <h1>Pointr</h1>
@@ -227,6 +256,10 @@ export function homePage(): string {
       </div>
     </div>
   </div>
+  </div>
+  <footer class="page-footer">
+    <a href="https://github.com/notchrisbutler/pointr" target="_blank" rel="noopener">GitHub</a>
+  </footer>
 </body>
 </html>`;
 }

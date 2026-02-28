@@ -38,12 +38,34 @@ export function sessionPage(sessionId: string): string {
       padding: 0;
     }
 
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       background: var(--bg);
       color: var(--text);
-      min-height: 100vh;
-      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page-footer {
+      flex-shrink: 0;
+      text-align: center;
+      padding: 0.5rem;
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+    }
+
+    .page-footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    .page-footer a:hover {
+      color: var(--accent);
     }
 
     .hidden {
@@ -53,12 +75,12 @@ export function sessionPage(sessionId: string): string {
     /* ── Lobby ── */
 
     #lobby {
+      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
       padding: 1rem;
-      margin: -1rem;
+      min-height: 0;
     }
 
     .card {
@@ -198,12 +220,16 @@ export function sessionPage(sessionId: string): string {
     /* ── Session layout ── */
 
     #session {
+      flex: 1;
       max-width: 800px;
+      width: 100%;
       margin: 0 auto;
-      padding: 1.5rem 0;
+      padding: 1rem 1rem 0;
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
+      gap: 1rem;
+      min-height: 0;
+      overflow-y: auto;
     }
 
     /* ── Top bar ── */
@@ -514,6 +540,15 @@ export function sessionPage(sessionId: string): string {
 
     /* ── Story setup ── */
 
+    #story-setup {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      min-height: 0;
+    }
+
     .story-input-row {
       display: flex;
       gap: 0.5rem;
@@ -792,6 +827,10 @@ export function sessionPage(sessionId: string): string {
 
   <!-- Toast -->
   <div id="toast">Invite link copied!</div>
+
+  <footer class="page-footer">
+    <a href="https://github.com/notchrisbutler/pointr" target="_blank" rel="noopener">GitHub</a>
+  </footer>
 
   <script src="/client.js"></script>
 </body>
