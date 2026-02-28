@@ -558,7 +558,6 @@ export function sessionPage(sessionId: string): string {
       display: flex;
       flex-direction: column;
       gap: 0.375rem;
-      min-height: 2rem;
     }
 
     .story-list-item {
@@ -718,10 +717,10 @@ export function sessionPage(sessionId: string): string {
 
   <!-- ── Story Setup (shown after join, before stories are locked) ── -->
   <div id="story-setup" class="hidden">
-    <div class="card" style="max-width:600px;margin:2rem auto;">
+    <div class="card">
       <div class="header">
-        <h1 style="font-size:1.5rem;">Add Stories</h1>
-        <p class="session-label">Optional — add stories to vote on in sequence</p>
+        <h1>Pointr</h1>
+        <p class="session-label">Add stories to vote on in sequence, or start blank</p>
       </div>
 
       <hr class="divider">
@@ -742,10 +741,7 @@ export function sessionPage(sessionId: string): string {
         <!-- Rendered by client.js -->
       </div>
 
-      <div class="join-buttons">
-        <button type="button" class="btn btn-primary" id="story-start-btn">Start Session</button>
-        <button type="button" class="btn btn-secondary" id="story-skip-btn">Skip — No Stories</button>
-      </div>
+      <button type="button" class="btn btn-primary" style="width:100%;" id="story-start-btn">Start Session</button>
     </div>
   </div>
 

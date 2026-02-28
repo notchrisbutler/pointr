@@ -36,7 +36,6 @@ export const CLIENT_JS = `(function() {
   var storyAddBtn = document.getElementById('story-add-btn');
   var storyListItems = document.getElementById('story-list-items');
   var storyStartBtn = document.getElementById('story-start-btn');
-  var storySkipBtn = document.getElementById('story-skip-btn');
   var storyNav = document.getElementById('story-nav');
   var storyPrevBtn = document.getElementById('story-prev-btn');
   var storyNextBtn = document.getElementById('story-next-btn');
@@ -445,11 +444,6 @@ export const CLIENT_JS = `(function() {
     }
   });
 
-  storySkipBtn.addEventListener('click', function() {
-    storySetup.classList.add('hidden');
-    session.classList.remove('hidden');
-    send({ type: 'skip-setup' });
-  });
 
   // ── Story navigation ──
 
