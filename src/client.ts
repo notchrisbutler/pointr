@@ -139,9 +139,12 @@ export const CLIENT_JS = `(function() {
       if (String(selectedVote) === String(val)) {
         btn.classList.add('selected');
       }
+      if (revealed) {
+        btn.classList.add('disabled');
+      }
       btn.setAttribute('data-value', String(val));
-      // Display label: use coffee emoji for "coffee", otherwise the value
-      btn.textContent = val === 'coffee' ? '\\u2615' : String(val);
+      // Display label: use coffee emoji for "coffee", ½ for 0.5, otherwise the value
+      btn.textContent = val === 'coffee' ? '\\u2615' : val === 0.5 ? '\\u00BD' : String(val);
       cardsRow.appendChild(btn);
     });
   }

@@ -323,6 +323,13 @@ export function sessionPage(sessionId: string): string {
       box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35);
     }
 
+    .vote-card.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+      transform: none;
+      box-shadow: none;
+    }
+
     /* ── Action buttons ── */
 
     .action-buttons {
@@ -580,19 +587,7 @@ export function sessionPage(sessionId: string): string {
     <!-- Cards -->
     <div class="cards-section">
       <label>Your vote</label>
-      <div class="cards-row" id="cards-row">
-        <button class="vote-card" data-value="0">0</button>
-        <button class="vote-card" data-value="1">1</button>
-        <button class="vote-card" data-value="2">2</button>
-        <button class="vote-card" data-value="3">3</button>
-        <button class="vote-card" data-value="5">5</button>
-        <button class="vote-card" data-value="8">8</button>
-        <button class="vote-card" data-value="13">13</button>
-        <button class="vote-card" data-value="21">21</button>
-        <button class="vote-card" data-value="34">34</button>
-        <button class="vote-card" data-value="?">?</button>
-        <button class="vote-card" data-value="coffee">☕</button>
-      </div>
+      <div class="cards-row" id="cards-row"></div>
     </div>
 
     <!-- Action buttons -->
