@@ -209,9 +209,9 @@ export const CLIENT_JS = `(function() {
       storyPrevBtn.style.display = amHost ? '' : 'none';
       storyNextBtn.style.display = amHost ? '' : 'none';
     }
-    // Story textarea: only host can edit in generic mode
+    // Story textarea: anyone can edit in generic mode (no pre-loaded stories)
     if (!data.stories || data.stories.length === 0) {
-      storyEl.readOnly = !amHost;
+      storyEl.readOnly = false;
     }
   }
 
