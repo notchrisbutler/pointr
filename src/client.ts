@@ -204,9 +204,7 @@ export const CLIENT_JS = `(function() {
       showVotesBtn.disabled = false;
     }
 
-    // Host-only controls visibility
-    showVotesBtn.style.display = amHost ? '' : 'none';
-    newRoundBtn.style.display = amHost ? '' : 'none';
+    // Host-only controls visibility (story management only)
     if (data.stories && data.stories.length > 0) {
       storyPrevBtn.style.display = amHost ? '' : 'none';
       storyNextBtn.style.display = amHost ? '' : 'none';
@@ -274,14 +272,6 @@ export const CLIENT_JS = `(function() {
       var statusSpan = document.createElement('span');
       statusSpan.className = 'player-status';
 
-      if (p.isHost) {
-        var hostBadge = document.createElement('span');
-        hostBadge.className = 'observer-badge';
-        hostBadge.style.background = 'var(--accent)';
-        hostBadge.style.color = '#fff';
-        hostBadge.textContent = 'Host';
-        statusSpan.appendChild(hostBadge);
-      }
       if (p.isObserver) {
         var badge = document.createElement('span');
         badge.className = 'observer-badge';
@@ -376,9 +366,6 @@ export const CLIENT_JS = `(function() {
       if (String(finalVote) === String(val)) {
         btn.classList.add('selected');
       }
-      if (!amHost) {
-        btn.classList.add('disabled');
-      }
       btn.setAttribute('data-value', String(val));
       btn.textContent = val === 'coffee' ? '\\u2615' : val === 0.5 ? '\\u00BD' : String(val);
       finalCardsEl.appendChild(btn);
@@ -386,7 +373,6 @@ export const CLIENT_JS = `(function() {
   }
 
   finalCardsEl.addEventListener('click', function(e) {
-    if (!amHost) return;
     var card = e.target.closest('.final-card');
     if (!card) return;
     var value = card.getAttribute('data-value');

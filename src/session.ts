@@ -19,7 +19,7 @@ const EMOJI_NAMES = ['🦊', '🐙', '🦄', '🐲', '🎲', '🌵', '🍕', '�
 
 const MAX_MESSAGES_PER_SECOND = 20;
 
-const HOST_ACTIONS = new Set(['reveal', 'clear', 'start', 'story', 'set-stories', 'skip-setup', 'story-next', 'story-prev', 'story-goto', 'final', 'transfer-host']);
+const HOST_ACTIONS = new Set(['story', 'set-stories', 'skip-setup', 'story-next', 'story-prev', 'story-goto', 'transfer-host']);
 
 function randomEmojiName(): string {
   return EMOJI_NAMES[Math.floor(Math.random() * EMOJI_NAMES.length)];
