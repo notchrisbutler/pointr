@@ -101,6 +101,8 @@ export const CLIENT_JS = `(function() {
       }
       if (data.type === 'state') {
         handleState(data);
+      } else if (data.type === 'error') {
+        showToast(data.message);
       }
     };
 
@@ -125,10 +127,10 @@ export const CLIENT_JS = `(function() {
     amHost = me ? me.isHost : false;
 
     lastRoundStartTime = data.roundStartTime;
-    var timerKey = data.roundStartTime + ':' + data.revealTime + ':' + data.finalVote;
+    var timerKey = data.roundStartTime + ':' + data.revealTime + ':' + data.finalVote + ':' + data.discussionPausedTotal;
     if (timerKey !== lastTimerKey) {
       lastTimerKey = timerKey;
-      updateTimers(data.roundStartTime, data.revealTime, data.finalVote);
+      updateTimers(data.roundStartTime, data.revealTime, data.finalVote, data.discussionPausedAt || 0, data.discussionPausedTotal || 0);
     }
 
     // Render cards from pointValues (skip if observer)
@@ -374,6 +376,9 @@ export const CLIENT_JS = `(function() {
       if (String(finalVote) === String(val)) {
         btn.classList.add('selected');
       }
+      if (!amHost) {
+        btn.classList.add('disabled');
+      }
       btn.setAttribute('data-value', String(val));
       btn.textContent = val === 'coffee' ? '\\u2615' : val === 0.5 ? '\\u00BD' : String(val);
       finalCardsEl.appendChild(btn);
@@ -381,6 +386,7 @@ export const CLIENT_JS = `(function() {
   }
 
   finalCardsEl.addEventListener('click', function(e) {
+    if (!amHost) return;
     var card = e.target.closest('.final-card');
     if (!card) return;
     var value = card.getAttribute('data-value');
@@ -398,7 +404,7 @@ export const CLIENT_JS = `(function() {
     if (discussionInterval) { clearInterval(discussionInterval); discussionInterval = null; }
   }
 
-  function updateTimers(roundStartTime, revealTime, finalVote) {
+  function updateTimers(roundStartTime, revealTime, finalVote, discussionPausedAt, discussionPausedTotal) {
     clearTimers();
 
     // Both stopped
@@ -432,14 +438,16 @@ export const CLIENT_JS = `(function() {
       // Final selected — both frozen, both full white
       votingTimerEl.className = 'timer';
       discussionTimerEl.className = 'timer';
-      // No intervals — just preserve current discussion time
+      // Show frozen discussion time (time from reveal to when pause started, minus prior pauses)
+      var frozenElapsed = Math.max(0, Math.floor((discussionPausedAt - revealTime - discussionPausedTotal) / 1000));
+      discussionTimerEl.textContent = formatTime(frozenElapsed);
       return;
     }
 
-    // No final — voting dimmed, discussion ticking
+    // No final — voting dimmed, discussion ticking (subtract total paused time)
     votingTimerEl.className = 'timer timer-dim';
     function discTick() {
-      var elapsed = Math.max(0, Math.floor((Date.now() - revealTime) / 1000));
+      var elapsed = Math.max(0, Math.floor((Date.now() - revealTime - discussionPausedTotal) / 1000));
       discussionTimerEl.textContent = formatTime(elapsed);
       discussionTimerEl.className = 'timer';
     }

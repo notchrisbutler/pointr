@@ -511,6 +511,12 @@ export function sessionPage(sessionId: string): string {
       box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
     }
 
+    .final-card.disabled {
+      opacity: 0.6;
+      cursor: default;
+      pointer-events: none;
+    }
+
     /* ── Players section ── */
 
     .players-section {

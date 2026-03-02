@@ -29,6 +29,20 @@ interface PlayerState extends Player {
   isHost: boolean;
 }
 
+interface RoundState {
+  revealed: boolean;
+  storyDescription: string;
+  roundStartTime: number;
+  revealTime: number;
+  finalVote: string | number | null;
+  pointValues: (number | string)[];
+  stories: string[];
+  currentStoryIndex: number;
+  sessionReady: boolean;
+  discussionPausedAt: number;
+  discussionPausedTotal: number;
+}
+
 export class PokerSession extends DurableObject {
   private players: Map<WebSocket, PlayerState> = new Map();
   private revealed: boolean = false;
@@ -40,6 +54,8 @@ export class PokerSession extends DurableObject {
   private stories: string[] = [];
   private currentStoryIndex: number = 0;
   private sessionReady: boolean = false;
+  private discussionPausedAt: number = 0;
+  private discussionPausedTotal: number = 0;
   private messageCounts: Map<WebSocket, { count: number; windowStart: number }> = new Map();
 
   constructor(ctx: DurableObjectState, env: Env) {
@@ -55,6 +71,38 @@ export class PokerSession extends DurableObject {
         });
       }
     }
+    this.ctx.blockConcurrencyWhile(async () => {
+      const saved = await this.ctx.storage.get<RoundState>('roundState');
+      if (saved) {
+        this.revealed = saved.revealed;
+        this.storyDescription = saved.storyDescription;
+        this.roundStartTime = saved.roundStartTime;
+        this.revealTime = saved.revealTime;
+        this.finalVote = saved.finalVote;
+        this.pointValues = saved.pointValues;
+        this.stories = saved.stories;
+        this.currentStoryIndex = saved.currentStoryIndex;
+        this.sessionReady = saved.sessionReady;
+        this.discussionPausedAt = saved.discussionPausedAt ?? 0;
+        this.discussionPausedTotal = saved.discussionPausedTotal ?? 0;
+      }
+    });
+  }
+
+  private saveRoundState(): void {
+    this.ctx.storage.put('roundState', {
+      revealed: this.revealed,
+      storyDescription: this.storyDescription,
+      roundStartTime: this.roundStartTime,
+      revealTime: this.revealTime,
+      finalVote: this.finalVote,
+      pointValues: this.pointValues,
+      stories: this.stories,
+      currentStoryIndex: this.currentStoryIndex,
+      sessionReady: this.sessionReady,
+      discussionPausedAt: this.discussionPausedAt,
+      discussionPausedTotal: this.discussionPausedTotal,
+    } satisfies RoundState);
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -200,13 +248,23 @@ export class PokerSession extends DurableObject {
           return;
         }
         const fv = data.value;
+        const wasPaused = this.finalVote !== null;
         if (fv === null) {
           this.finalVote = null;
+          // Unpausing: accumulate paused duration
+          if (wasPaused && this.discussionPausedAt > 0) {
+            this.discussionPausedTotal += Date.now() - this.discussionPausedAt;
+            this.discussionPausedAt = 0;
+          }
         } else if (!this.pointValues.includes(fv as string | number)) {
           ws.send(JSON.stringify({ type: 'error', message: 'Invalid final vote value' }));
           return;
         } else {
           this.finalVote = fv as string | number;
+          // Pausing: record when pause started (only if not already paused)
+          if (!wasPaused) {
+            this.discussionPausedAt = Date.now();
+          }
         }
         this.broadcastState();
         break;
@@ -217,6 +275,8 @@ export class PokerSession extends DurableObject {
         this.roundStartTime = 0;
         this.revealTime = 0;
         this.finalVote = null;
+        this.discussionPausedAt = 0;
+        this.discussionPausedTotal = 0;
         for (const [socket, player] of this.players) {
           player.vote = null;
           socket.serializeAttachment({ name: player.name, vote: null, isObserver: player.isObserver, isHost: player.isHost });
@@ -345,6 +405,8 @@ export class PokerSession extends DurableObject {
       isHost: player.isHost,
     }));
 
+    this.saveRoundState();
+
     const stateMessage = JSON.stringify({
       type: 'state',
       players: playerList,
@@ -357,6 +419,8 @@ export class PokerSession extends DurableObject {
       stories: this.stories,
       currentStoryIndex: this.currentStoryIndex,
       sessionReady: this.sessionReady,
+      discussionPausedAt: this.discussionPausedAt,
+      discussionPausedTotal: this.discussionPausedTotal,
     });
 
     for (const ws of this.ctx.getWebSockets()) {
