@@ -126,6 +126,10 @@ export const CLIENT_JS = `(function() {
     }
     amHost = me ? me.isHost : false;
 
+    // Clear local selection when round resets
+    if (data.roundStartTime === 0 && !data.revealed) {
+      selectedVote = null;
+    }
     lastRoundStartTime = data.roundStartTime;
     var timerKey = data.roundStartTime + ':' + data.revealTime + ':' + data.finalVote + ':' + data.discussionPausedTotal;
     if (timerKey !== lastTimerKey) {
