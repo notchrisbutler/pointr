@@ -259,6 +259,7 @@ export function sessionPage(sessionId: string): string {
       gap: 1rem;
       min-height: 0;
       overflow-y: auto;
+      overflow-x: hidden;
     }
 
     /* ── Top bar ── */

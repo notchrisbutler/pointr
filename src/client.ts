@@ -461,10 +461,10 @@ export const CLIENT_JS = `(function() {
     if (revealTime === 0) {
       discussionTimerEl.textContent = '0:00';
       discussionTimerEl.className = 'timer timer-dim';
+      votingTimerEl.className = 'timer';
       function voteTick() {
         var elapsed = Math.max(0, Math.floor((Date.now() - roundStartTime) / 1000));
         votingTimerEl.textContent = formatTime(elapsed);
-        votingTimerEl.className = 'timer';
       }
       voteTick();
       votingInterval = setInterval(voteTick, 1000);
@@ -487,10 +487,10 @@ export const CLIENT_JS = `(function() {
 
     // No final — voting dimmed, discussion ticking (subtract total paused time)
     votingTimerEl.className = 'timer timer-dim';
+    discussionTimerEl.className = 'timer';
     function discTick() {
       var elapsed = Math.max(0, Math.floor((Date.now() - revealTime - discussionPausedTotal) / 1000));
       discussionTimerEl.textContent = formatTime(elapsed);
-      discussionTimerEl.className = 'timer';
     }
     discTick();
     discussionInterval = setInterval(discTick, 1000);
