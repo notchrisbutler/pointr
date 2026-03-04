@@ -18,6 +18,7 @@ const DEFAULT_POINT_VALUES: (number | string)[] = [0, 0.5, 1, 2, 3, 5, 8, 13, 20
 const EMOJI_NAMES = ['🦊', '🐙', '🦄', '🐲', '🎲', '🌵', '🍕', '🚀', '🎸', '🌈', '🎪', '🐝', '🦋', '🎯', '🧩', '🌺', '🐼', '🦜', '🎭', '🔮'];
 
 const MAX_MESSAGES_PER_SECOND = 20;
+const IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
 const HOST_ACTIONS = new Set(['set-stories', 'skip-setup', 'story-next', 'story-prev', 'story-goto', 'transfer-host']);
 
@@ -157,6 +158,9 @@ export class PokerSession extends DurableObject {
       this.broadcastState();
       return;
     }
+
+    // Reset idle timeout — any message from any player reschedules the alarm
+    this.ctx.storage.setAlarm(Date.now() + IDLE_TIMEOUT_MS);
 
     let data: Record<string, unknown>;
     try {
@@ -394,6 +398,22 @@ export class PokerSession extends DurableObject {
       this.assignNewHost();
     }
     this.broadcastState();
+  }
+
+  async alarm(): Promise<void> {
+    // Session timed out — notify all clients and tear down
+    const msg = JSON.stringify({ type: 'timeout' });
+    for (const ws of this.ctx.getWebSockets()) {
+      try {
+        ws.send(msg);
+        ws.close(4000, 'Session timed out due to inactivity');
+      } catch {
+        // Socket already closed, ignore
+      }
+    }
+    this.players.clear();
+    this.messageCounts.clear();
+    await this.ctx.storage.deleteAll();
   }
 
   private broadcastState(): void {

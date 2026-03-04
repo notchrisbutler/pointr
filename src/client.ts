@@ -13,6 +13,7 @@ export const CLIENT_JS = `(function() {
   var localStories = [];
   var hasEnteredSession = false;
   var amHost = false;
+  var timedOut = false;
 
   // ── DOM refs ──
   var lobby = document.getElementById('lobby');
@@ -101,12 +102,20 @@ export const CLIENT_JS = `(function() {
       }
       if (data.type === 'state') {
         handleState(data);
+      } else if (data.type === 'timeout') {
+        timedOut = true;
+        showTimeoutOverlay();
       } else if (data.type === 'error') {
         showToast(data.message);
       }
     };
 
-    ws.onclose = function() {
+    ws.onclose = function(event) {
+      if (timedOut || event.code === 4000) {
+        timedOut = true;
+        showTimeoutOverlay();
+        return;
+      }
       setTimeout(function() {
         connect();
       }, 1500);
