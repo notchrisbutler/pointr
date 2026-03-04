@@ -8,13 +8,18 @@ Fast, free planning poker for agile teams
 [![Durable Objects](https://img.shields.io/badge/Durable_Objects-F38020?logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/durable-objects/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-<!-- screenshot placeholder -->
-<table cellspacing="0" cellpadding="0">
-  <tr>
-    <td><img height="800" alt="Mobile view" src="https://github.com/user-attachments/assets/acc960d9-dbc7-4f43-9ce3-33ff9c15b9bf" /></td>
-    <td><img height="600" alt="Desktop view" src="https://github.com/user-attachments/assets/f8294fbf-5565-416f-aa82-01377122b2d1" /></td>
-  </tr>
-</table>
+<details>
+<summary>Screenshots</summary>
+
+**Mobile**
+
+<img width="400" alt="Mobile view" src="https://github.com/user-attachments/assets/acc960d9-dbc7-4f43-9ce3-33ff9c15b9bf" />
+
+**Desktop**
+
+<img width="600" alt="Desktop view" src="https://github.com/user-attachments/assets/f8294fbf-5565-416f-aa82-01377122b2d1" />
+
+</details>
 
 ## Features
 
