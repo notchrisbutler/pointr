@@ -194,21 +194,43 @@ export class PokerSession extends DurableObject {
     switch (type) {
       case 'join': {
         let name = String(data.name ?? '').trim().slice(0, 30) || randomEmojiName();
-        const takenNames = new Set(Array.from(this.players.values()).map(p => p.name));
-        if (takenNames.has(name)) {
-          let suffix = 2;
-          while (takenNames.has(name + ' ' + suffix)) suffix++;
-          name = name + ' ' + suffix;
-        }
         const isObserver = Boolean(data.isObserver);
+
+        // Check for reconnection: if a player with this exact name already exists
+        // on a different WebSocket, treat it as a reconnect (close old socket, keep state)
+        let isReconnect = false;
+        let reconnectedVote: string | number | null = null;
+        let reconnectedIsHost = false;
+        for (const [existingWs, existingPlayer] of this.players) {
+          if (existingPlayer.name === name && existingWs !== ws) {
+            isReconnect = true;
+            reconnectedVote = existingPlayer.vote;
+            reconnectedIsHost = existingPlayer.isHost;
+            this.players.delete(existingWs);
+            this.messageCounts.delete(existingWs);
+            try { existingWs.close(1000, 'Replaced by new connection'); } catch { /* already closed */ }
+            break;
+          }
+        }
+
+        // Only deduplicate if this isn't a reconnection
+        if (!isReconnect) {
+          const takenNames = new Set(Array.from(this.players.values()).map(p => p.name));
+          if (takenNames.has(name)) {
+            let suffix = 2;
+            while (takenNames.has(name + ' ' + suffix)) suffix++;
+            name = name + ' ' + suffix;
+          }
+        }
+
         const isFirstPlayer = this.players.size === 0 && !this.sessionReady;
         if (!isFirstPlayer && !this.sessionReady) {
           this.sessionReady = true;
         }
-        const shouldBeHost = !isObserver && !this.hasHost();
-        const player: PlayerState = { name, vote: null, isObserver, isHost: shouldBeHost };
+        const shouldBeHost = reconnectedIsHost || (!isObserver && !this.hasHost());
+        const player: PlayerState = { name, vote: reconnectedVote, isObserver, isHost: shouldBeHost };
         this.players.set(ws, player);
-        ws.serializeAttachment({ name, vote: null, isObserver, isHost: shouldBeHost });
+        ws.serializeAttachment({ name, vote: reconnectedVote, isObserver, isHost: shouldBeHost });
         this.broadcastState();
         break;
       }
