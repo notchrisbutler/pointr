@@ -11,12 +11,12 @@ Fast, free planning poker for agile teams
 ### Screenshots
 <details>
 <summary>Mobile</summary>
-<img width="400" alt="Mobile view" src="https://github.com/user-attachments/assets/acc960d9-dbc7-4f43-9ce3-33ff9c15b9bf" />
+<img wifth="850" alt="Mobile view" src="https://github.com/user-attachments/assets/acc960d9-dbc7-4f43-9ce3-33ff9c15b9bf" />
 </details>
 
 <details>
 <summary>Desktop</summary>
-<img width="600" alt="Desktop view" src="https://github.com/user-attachments/assets/f8294fbf-5565-416f-aa82-01377122b2d1" />
+<img width="1000" alt="Desktop view" src="https://github.com/user-attachments/assets/f8294fbf-5565-416f-aa82-01377122b2d1" />
 </details>
 
 ## Features
