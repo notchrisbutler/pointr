@@ -267,14 +267,19 @@ export const CLIENT_JS = `(function() {
     'Touching grass', 'In the metaverse'
   ];
 
-  function getSlackerMessage(playerName) {
-    // Deterministic pick based on player name so it stays stable per render
-    var hash = 0;
-    for (var i = 0; i < playerName.length; i++) {
-      hash = ((hash << 5) - hash) + playerName.charCodeAt(i);
-      hash = hash & hash;
+  // Cache random picks per round so they don't change on every re-render
+  var slackerCache = {};
+  var slackerCacheRound = 0;
+
+  function getSlackerMessage(playerName, roundStart) {
+    if (roundStart !== slackerCacheRound) {
+      slackerCache = {};
+      slackerCacheRound = roundStart;
     }
-    return slackerMessages[Math.abs(hash) % slackerMessages.length];
+    if (!slackerCache[playerName]) {
+      slackerCache[playerName] = slackerMessages[Math.floor(Math.random() * slackerMessages.length)];
+    }
+    return slackerCache[playerName];
   }
 
   function renderPlayers(players, revealed, roundStartTime, revealTime) {
@@ -315,7 +320,7 @@ export const CLIENT_JS = `(function() {
       } else if (revealed && p.vote === null && !p.isObserver) {
         if (votingDuration > 60) {
           statusSpan.className = 'player-status status-slacker';
-          statusSpan.textContent = getSlackerMessage(p.name);
+          statusSpan.textContent = getSlackerMessage(p.name, roundStartTime);
         } else {
           statusSpan.className = 'player-status status-no-vote';
           statusSpan.textContent = 'No vote';
