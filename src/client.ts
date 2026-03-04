@@ -505,6 +505,36 @@ export const CLIENT_JS = `(function() {
     discussionInterval = setInterval(discTick, 1000);
   }
 
+  // ── Timeout overlay ──
+
+  function showTimeoutOverlay() {
+    // Prevent duplicate overlays
+    if (document.getElementById('timeout-overlay')) return;
+    clearTimers();
+    var overlay = document.createElement('div');
+    overlay.id = 'timeout-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)';
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#1a1a2e;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:48px;text-align:center;max-width:400px';
+    var heading = document.createElement('h2');
+    heading.style.cssText = 'color:#fff;margin:0 0 12px 0;font-size:1.4rem';
+    heading.textContent = 'Session Ended';
+    var msg = document.createElement('p');
+    msg.style.cssText = 'color:rgba(255,255,255,0.7);margin:0 0 32px 0;font-size:1rem;line-height:1.5';
+    msg.textContent = 'This session has ended due to inactivity. Looks like everyone fell asleep!';
+    var btn = document.createElement('a');
+    btn.href = '/';
+    btn.style.cssText = 'display:inline-block;background:#6c5ce7;color:#fff;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:1rem;transition:background 0.15s';
+    btn.textContent = 'Back to Home';
+    btn.onmouseenter = function() { btn.style.background = '#7c6cf7'; };
+    btn.onmouseleave = function() { btn.style.background = '#6c5ce7'; };
+    card.appendChild(heading);
+    card.appendChild(msg);
+    card.appendChild(btn);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+  }
+
   // ── Join logic ──
 
   function join(observer) {
