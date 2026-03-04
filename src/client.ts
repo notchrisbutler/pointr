@@ -313,7 +313,7 @@ export const CLIENT_JS = `(function() {
         voteBadge.textContent = p.vote === 'coffee' ? '\\u2615' : String(p.vote);
         statusSpan.appendChild(voteBadge);
       } else if (revealed && p.vote === null && !p.isObserver) {
-        if (votingDuration > 30) {
+        if (votingDuration > 60) {
           statusSpan.className = 'player-status status-slacker';
           statusSpan.textContent = getSlackerMessage(p.name);
         } else {
