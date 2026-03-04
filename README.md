@@ -11,8 +11,8 @@ Fast, free planning poker for agile teams
 <!-- screenshot placeholder -->
 <table cellspacing="0" cellpadding="0">
   <tr>
-    <td><img height="400" alt="Desktop view" src="https://github.com/user-attachments/assets/f8294fbf-5565-416f-aa82-01377122b2d1" /></td>
     <td><img height="400" alt="Mobile view" src="https://github.com/user-attachments/assets/acc960d9-dbc7-4f43-9ce3-33ff9c15b9bf" /></td>
+    <td><img height="400" alt="Desktop view" src="https://github.com/user-attachments/assets/f8294fbf-5565-416f-aa82-01377122b2d1" /></td>
   </tr>
 </table>
 
