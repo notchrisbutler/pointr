@@ -270,6 +270,7 @@ export const CLIENT_JS = `(function() {
   // Cache random picks per round so they don't change on every re-render
   var slackerCache = {};
   var slackerCacheRound = 0;
+  var recentSlackerMessages = [];
 
   function getSlackerMessage(playerName, roundStart) {
     if (roundStart !== slackerCacheRound) {
@@ -277,7 +278,18 @@ export const CLIENT_JS = `(function() {
       slackerCacheRound = roundStart;
     }
     if (!slackerCache[playerName]) {
-      slackerCache[playerName] = slackerMessages[Math.floor(Math.random() * slackerMessages.length)];
+      // Filter out recently used messages to avoid repeats across rounds
+      var available = slackerMessages.filter(function(m) {
+        return recentSlackerMessages.indexOf(m) === -1;
+      });
+      if (available.length === 0) available = slackerMessages;
+      var pick = available[Math.floor(Math.random() * available.length)];
+      slackerCache[playerName] = pick;
+      recentSlackerMessages.push(pick);
+      // Keep a sliding window — forget after half the pool is used
+      if (recentSlackerMessages.length > Math.floor(slackerMessages.length / 2)) {
+        recentSlackerMessages.shift();
+      }
     }
     return slackerCache[playerName];
   }
