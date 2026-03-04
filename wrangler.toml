@@ -34,3 +34,5 @@ namespace_id = "1003"
   [ratelimits.simple]
   limit = 60
   period = 60
+
+custom_domains = ["pointr.chrisbutler.dev"]
