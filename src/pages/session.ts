@@ -576,6 +576,17 @@ export function sessionPage(sessionId: string): string {
       font-style: italic;
     }
 
+    .status-no-vote {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .status-slacker {
+      color: #ef4444;
+      font-weight: 600;
+      font-style: italic;
+    }
+
     .status-voted {
       color: #16a34a;
       font-weight: 500;

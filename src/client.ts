@@ -141,7 +141,7 @@ export const CLIENT_JS = `(function() {
     renderCards(data.pointValues, data.revealed);
 
     // Render players
-    renderPlayers(data.players, data.revealed);
+    renderPlayers(data.players, data.revealed, data.roundStartTime, data.revealTime);
 
     // Update story — when stories are loaded, always update (textarea is read-only)
     if (data.stories && data.stories.length > 0) {
@@ -256,8 +256,34 @@ export const CLIENT_JS = `(function() {
   // ── Render players ──
   // All user-supplied data (player names) is set via textContent for XSS safety.
 
-  function renderPlayers(players, revealed) {
+  var slackerMessages = [
+    'Clueless', 'AFK', 'Watching Netflix', 'Scrolling TikTok',
+    '\\u23F0 Slacker alert!', 'Gone fishing', 'Napping', 'Lost in space',
+    'Daydreaming', 'Playing Wordle', 'Reading memes',
+    'Forgot how numbers work', 'Still loading\\u2026',
+    'Error 404: Vote not found', 'Buffering\\u2026',
+    'Went for coffee', 'Distracted by a squirrel',
+    'Existential crisis', 'Vibing elsewhere',
+    'Touching grass', 'In the metaverse'
+  ];
+
+  function getSlackerMessage(playerName) {
+    // Deterministic pick based on player name so it stays stable per render
+    var hash = 0;
+    for (var i = 0; i < playerName.length; i++) {
+      hash = ((hash << 5) - hash) + playerName.charCodeAt(i);
+      hash = hash & hash;
+    }
+    return slackerMessages[Math.abs(hash) % slackerMessages.length];
+  }
+
+  function renderPlayers(players, revealed, roundStartTime, revealTime) {
     playersCount.textContent = '(' + players.length + ')';
+
+    // Check if voting lasted >30s before reveal
+    var votingDuration = (roundStartTime > 0 && revealTime > 0)
+      ? (revealTime - roundStartTime) / 1000
+      : 0;
 
     // Clear existing player rows using safe DOM method
     while (playersList.firstChild) {
@@ -286,6 +312,14 @@ export const CLIENT_JS = `(function() {
         voteBadge.className = 'vote-badge';
         voteBadge.textContent = p.vote === 'coffee' ? '\\u2615' : String(p.vote);
         statusSpan.appendChild(voteBadge);
+      } else if (revealed && p.vote === null && !p.isObserver) {
+        if (votingDuration > 30) {
+          statusSpan.className = 'player-status status-slacker';
+          statusSpan.textContent = getSlackerMessage(p.name);
+        } else {
+          statusSpan.className = 'player-status status-no-vote';
+          statusSpan.textContent = 'No vote';
+        }
       } else if (p.voted) {
         statusSpan.className = 'player-status status-voted';
         statusSpan.textContent = ' Voted';
