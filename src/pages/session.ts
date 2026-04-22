@@ -1,9 +1,5 @@
 import { renderPage } from "./layout";
-import {
-  renderLobby,
-  renderSessionBoard,
-  renderStorySetup,
-} from "./session-sections";
+import { renderLobby, renderSessionBoard } from "./session-sections";
 import { SHARED_PAGE_STYLES } from "./styles";
 
 export const SESSION_PAGE_STYLES = `
@@ -30,8 +26,7 @@ export const SESSION_PAGE_STYLES = `
 
   /* ── Lobby ── */
 
-  #lobby,
-  #story-setup {
+  #lobby {
     min-height: 0;
   }
 
@@ -160,26 +155,6 @@ export const SESSION_PAGE_STYLES = `
 
   .timer-dim {
     opacity: 0.35;
-  }
-
-  /* ── Story textarea ── */
-
-  .story-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .story-wrap label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text-muted);
-  }
-
-  #story {
-    width: 100%;
-    min-height: 80px;
-    resize: vertical;
   }
 
   /* ── Cards ── */
@@ -546,107 +521,6 @@ export const SESSION_PAGE_STYLES = `
     opacity: 0.8;
   }
 
-  /* ── Story setup ── */
-
-  .story-input-row {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .story-list-items {
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-  }
-
-  #story-start-btn {
-    width: 100%;
-  }
-
-  .story-list-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.5rem 0.75rem;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-size: 0.875rem;
-  }
-
-  .story-list-item .story-text {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .story-list-item .story-num {
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-right: 0.5rem;
-    flex-shrink: 0;
-  }
-
-  .story-list-item .story-remove {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    font-size: 1rem;
-    padding: 0 0.25rem;
-    line-height: 1;
-    flex-shrink: 0;
-  }
-
-  .story-list-item .story-remove:hover {
-    color: #ef4444;
-  }
-
-  /* ── Story nav bar ── */
-
-  .story-nav {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    padding: 0.5rem 1rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-  }
-
-  .story-progress {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text);
-    min-width: 5ch;
-    text-align: center;
-  }
-
-  .btn-icon {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    cursor: pointer;
-    font-size: 1rem;
-    padding: 0.375rem 0.75rem;
-    transition: background 0.15s, border-color 0.15s;
-  }
-
-  .btn-icon:hover {
-    border-color: var(--accent);
-    background: var(--surface);
-  }
-
-  .btn-icon:disabled {
-    opacity: 0.3;
-    cursor: default;
-  }
-
   /* ── Responsive ── */
 
   @media (max-width: 480px) {
@@ -686,10 +560,6 @@ export const SESSION_PAGE_STYLES = `
     .action-buttons {
       flex-direction: column;
     }
-
-    .story-input-row {
-      flex-direction: column;
-    }
   }
 `;
 
@@ -699,7 +569,6 @@ export function sessionPage(sessionId: string): string {
     bodyAttributes: `data-session-id="${sessionId}"`,
     styles: `${SHARED_PAGE_STYLES}${SESSION_PAGE_STYLES}`,
     content: `${renderLobby(sessionId)}
-${renderStorySetup()}
 ${renderSessionBoard(sessionId)}`,
     scriptPath: "/client.js",
   });

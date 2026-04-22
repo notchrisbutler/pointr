@@ -5,7 +5,6 @@ import { SESSION_PAGE_STYLES, sessionPage } from "../src/pages/session";
 import {
   renderLobby,
   renderSessionBoard,
-  renderStorySetup,
 } from "../src/pages/session-sections";
 import { SHARED_PAGE_STYLES } from "../src/pages/styles";
 
@@ -48,11 +47,10 @@ describe("SHARED_PAGE_STYLES", () => {
 
 describe("SESSION_PAGE_STYLES", () => {
   it("contains session-only selectors without re-owning shared primitives", () => {
-    expect(SESSION_PAGE_STYLES).toContain(".story-nav {");
     expect(SESSION_PAGE_STYLES).toContain(".players-list {");
     expect(SESSION_PAGE_STYLES).toContain("#toast {");
-    expect(SESSION_PAGE_STYLES).toContain(".btn-icon {");
-    expect(SESSION_PAGE_STYLES).toContain("#story-start-btn {");
+    expect(SESSION_PAGE_STYLES).toContain(".vote-card {");
+    expect(SESSION_PAGE_STYLES).toContain(".results-row {");
     expect(SESSION_PAGE_STYLES).not.toContain(":root {");
     expect(SESSION_PAGE_STYLES).not.toContain(".page-footer");
     expect(SESSION_PAGE_STYLES).not.toContain("\n  .btn-primary {");
@@ -65,6 +63,13 @@ describe("SESSION_PAGE_STYLES", () => {
     expect(SESSION_PAGE_STYLES).toContain(".card {");
     expect(SESSION_PAGE_STYLES).toContain("padding: 2rem 1.25rem;");
     expect(SESSION_PAGE_STYLES).not.toContain(".story-setup-card {");
+    expect(SESSION_PAGE_STYLES).not.toContain(".story-nav {");
+    expect(SESSION_PAGE_STYLES).not.toContain(".story-wrap {");
+    expect(SESSION_PAGE_STYLES).not.toContain("#story {");
+    expect(SESSION_PAGE_STYLES).not.toContain(".story-input-row {");
+    expect(SESSION_PAGE_STYLES).not.toContain(".story-list-items {");
+    expect(SESSION_PAGE_STYLES).not.toContain("#story-start-btn {");
+    expect(SESSION_PAGE_STYLES).not.toContain(".btn-icon {");
   });
 });
 
@@ -100,22 +105,31 @@ describe("home page", () => {
 });
 
 describe("session sections", () => {
-  it("renders the lobby and setup sections inside the shared entry stage", () => {
+  it("renders the lobby inside the shared entry stage without a separate setup view", () => {
     expect(renderLobby("abc12")).toContain('id="lobby" class="stage entry-stage"');
     expect(renderLobby("abc12")).toContain('class="card entry-card"');
-    expect(renderStorySetup()).toContain('id="story-setup" class="hidden stage entry-stage"');
-    expect(renderStorySetup()).toContain('class="card entry-card story-setup-card"');
   });
 
-  it("renders the active session board in the shared stage shell", () => {
+  it("renders the active session board in the shared stage shell without story controls", () => {
     const html = renderSessionBoard("abc12");
 
     expect(html).toContain('id="session" class="hidden stage"');
     expect(html).toContain('class="session-shell"');
     expect(html).toContain('id="session-id-copy"');
+    expect(html).toContain('id="timer-voting"');
+    expect(html).toContain('id="timer-discussion"');
     expect(html).toContain('id="cards-row"');
+    expect(html).toContain('id="show-votes-btn"');
+    expect(html).toContain('id="new-round-btn"');
+    expect(html).toContain('id="results-row"');
+    expect(html).toContain('id="final-cards"');
     expect(html).toContain('id="players-list"');
     expect(html).toContain('id="toast"');
+    expect(html).not.toContain('id="story-nav"');
+    expect(html).not.toContain('id="story"');
+    expect(html).not.toContain('id="story-prev-btn"');
+    expect(html).not.toContain('id="story-next-btn"');
+    expect(html).not.toContain('id="story-progress"');
     expect(html).toContain(">abc12<");
   });
 });
@@ -129,8 +143,8 @@ describe("sessionPage", () => {
     expect(html).toContain(SHARED_PAGE_STYLES);
     expect(html).toContain(SESSION_PAGE_STYLES);
     expect(html).toContain(renderLobby("abc123"));
-    expect(html).toContain(renderStorySetup());
     expect(html).toContain(renderSessionBoard("abc123"));
+    expect(html).not.toContain('id="story-setup"');
     expect(html).toContain('<script src="/client.js"></script>');
     expect(html).toContain('<footer class="page-footer">');
   });

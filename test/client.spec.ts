@@ -2,6 +2,26 @@ import { describe, expect, it } from "vitest";
 import { CLIENT_JS } from "../src/client";
 
 describe("session client", () => {
+  it("does not read host state from the joined payload", () => {
+    expect(CLIENT_JS).not.toContain("amHost = selfState.amHost;");
+  });
+
+  it("does not reference removed story setup or host-only client controls", () => {
+    expect(CLIENT_JS).not.toContain("story-setup");
+    expect(CLIENT_JS).not.toContain("story-add-input");
+    expect(CLIENT_JS).not.toContain("story-add-btn");
+    expect(CLIENT_JS).not.toContain("story-list-items");
+    expect(CLIENT_JS).not.toContain("story-start-btn");
+    expect(CLIENT_JS).not.toContain("story-nav");
+    expect(CLIENT_JS).not.toContain("story-prev-btn");
+    expect(CLIENT_JS).not.toContain("story-next-btn");
+    expect(CLIENT_JS).not.toContain("story-progress");
+    expect(CLIENT_JS).not.toContain("set-stories");
+    expect(CLIENT_JS).not.toContain("skip-setup");
+    expect(CLIENT_JS).not.toContain("story-prev");
+    expect(CLIENT_JS).not.toContain("story-next");
+  });
+
   it("shows timeout actions for creating a new session or returning home", () => {
     const harness = createClientHarness();
 
@@ -27,24 +47,13 @@ describe("session client", () => {
     expect(newSessionButton?.tagName).toBe("BUTTON");
   });
 
-  it("waits for a sessionReady state before transitioning from setup to session", () => {
+  it("transitions directly from lobby to session on the first state payload", () => {
     const harness = createClientHarness();
 
     harness.joinPlayerButton.dispatch("click");
-    harness.socket.receive(buildStatePayload({ sessionReady: false }));
+    harness.socket.receive(buildStatePayload());
 
-    expect(harness.storySetup.classList.contains("hidden")).toBe(false);
-    expect(harness.session.classList.contains("hidden")).toBe(true);
-
-    harness.storyStartButton.dispatch("click");
-
-    expect(harness.socket.sentMessages.at(-1)).toEqual({ type: "skip-setup" });
-    expect(harness.storySetup.classList.contains("hidden")).toBe(false);
-    expect(harness.session.classList.contains("hidden")).toBe(true);
-
-    harness.socket.receive(buildStatePayload({ sessionReady: true }));
-
-    expect(harness.storySetup.classList.contains("hidden")).toBe(true);
+    expect(harness.lobby.classList.contains("hidden")).toBe(true);
     expect(harness.session.classList.contains("hidden")).toBe(false);
   });
 });
@@ -243,15 +252,6 @@ function createClientHarness() {
     "players-count",
     "players-list",
     "toast",
-    "story-setup",
-    "story-add-input",
-    "story-add-btn",
-    "story-list-items",
-    "story-start-btn",
-    "story-nav",
-    "story-prev-btn",
-    "story-next-btn",
-    "story-progress",
     "join-count",
   ];
 
@@ -259,7 +259,7 @@ function createClientHarness() {
     const tagName = id.includes("btn") || id === "session-id-copy" ? "BUTTON" : id === "story" ? "TEXTAREA" : "DIV";
     const element = document.createElement(tagName);
     element.id = id;
-    if (id === "story-setup" || id === "session") {
+    if (id === "session") {
       element.className = "hidden";
     }
     if (id === "name-input") {
@@ -318,9 +318,8 @@ function createClientHarness() {
 
   return {
     document,
+    lobby: document.getElementById("lobby")!,
     joinPlayerButton,
-    storySetup: document.getElementById("story-setup")!,
-    storyStartButton: document.getElementById("story-start-btn")!,
     session: document.getElementById("session")!,
     get socket() {
       if (!socketHolder.current) {
@@ -331,7 +330,7 @@ function createClientHarness() {
   };
 }
 
-function buildStatePayload({ sessionReady }: { sessionReady: boolean }) {
+function buildStatePayload() {
   return {
     type: "state",
     players: [
@@ -350,9 +349,6 @@ function buildStatePayload({ sessionReady }: { sessionReady: boolean }) {
     discussionPausedTotal: 0,
     pointValues: [1, 2, 3],
     revealed: false,
-    stories: [],
-    currentStoryIndex: 0,
-    sessionReady,
     story: "",
   };
 }

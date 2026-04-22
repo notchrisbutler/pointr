@@ -15,9 +15,10 @@ Fast, free planning poker for agile teams
 - **No login required** — jump in with a name or get a random emoji identity
 - **Real-time WebSocket sync** — votes, timers, and state update instantly for all players
 - **Observer mode** — watch the session without voting
-- **Story list** — pre-load an ordered list of tickets that auto-advance on each round
+- **Fresh rounds** — each round starts from a clean board without story setup or sequenced ticket flow
 - **Dual timers** — voting phase and discussion phase timers driven by the server
 - **Final vote selection** — pick the agreed estimate after reveal
+- **Shared controls** — any participant can reveal votes or kick off the next fresh round
 - **Stats on reveal** — average and median of numeric votes
 - **Dark mode** — automatic via `prefers-color-scheme`
 - **Desktop-only session client** — mobile users are shown a desktop-only message
@@ -70,7 +71,7 @@ docs/
 
 ## How It Works
 
-Each session is backed by a **Cloudflare Durable Object** that holds all state in memory and manages WebSocket connections. The server broadcasts the full session state to every connected client after each mutation — no polling, no stale data.
+Each session is backed by a **Cloudflare Durable Object** that holds all state in memory and manages WebSocket connections. Players join from the lobby, land on the shared estimation board, and move through fresh voting rounds without story setup or host assignment. The server broadcasts the full session state to every connected client after each mutation — no polling, no stale data.
 
 | Route | Description |
 |-------|-------------|

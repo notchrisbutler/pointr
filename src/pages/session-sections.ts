@@ -31,36 +31,6 @@ export function renderLobby(sessionId: string): string {
   </div>`;
 }
 
-export function renderStorySetup(): string {
-  return `
-  <div id="story-setup" class="hidden stage entry-stage">
-    <div class="card entry-card story-setup-card">
-      <div class="header">
-        <h1>Pointr</h1>
-        <p class="session-label">Optional — add tickets to vote on</p>
-      </div>
-
-      <hr class="divider">
-
-      <div class="story-input-row">
-        <input
-          type="text"
-          id="story-add-input"
-          placeholder="Story title or ticket URL…"
-          autocomplete="off"
-          spellcheck="false"
-          maxlength="200"
-        >
-        <button type="button" class="btn btn-secondary" id="story-add-btn">Add</button>
-      </div>
-
-      <div id="story-list-items" class="story-list-items"></div>
-
-      <button type="button" class="btn btn-primary" id="story-start-btn">Start Session</button>
-    </div>
-  </div>`;
-}
-
 export function renderSessionBoard(sessionId: string): string {
   return `
   <div id="session" class="hidden stage">
@@ -84,17 +54,6 @@ export function renderSessionBoard(sessionId: string): string {
             <span class="timer" id="timer-discussion">0:00</span>
           </div>
         </div>
-      </div>
-
-      <div class="story-nav hidden" id="story-nav">
-        <button type="button" class="btn-icon" id="story-prev-btn" title="Previous story">&larr;</button>
-        <span class="story-progress" id="story-progress">1 of 5</span>
-        <button type="button" class="btn-icon" id="story-next-btn" title="Next story">&rarr;</button>
-      </div>
-
-      <div class="story-wrap">
-        <label for="story">Story / ticket</label>
-        <textarea id="story" placeholder="Paste a story, ticket URL, or description…" rows="3" spellcheck="false"></textarea>
       </div>
 
       <div class="cards-section">

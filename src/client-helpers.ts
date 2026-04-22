@@ -2,14 +2,12 @@ export interface JoinedPayload {
   type: "joined";
   clientId: string;
   name: string;
-  isHost: boolean;
   isObserver: boolean;
 }
 
 export interface SelfState {
   clientId: string;
   name: string;
-  amHost: boolean;
   isObserver: boolean;
 }
 
@@ -51,7 +49,6 @@ export function applyJoinedPayload(current: SelfState, payload: JoinedPayload): 
   return {
     clientId: payload.clientId,
     name: payload.name,
-    amHost: payload.isHost,
     isObserver: payload.isObserver,
   };
 }

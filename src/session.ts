@@ -12,7 +12,6 @@ interface PlayerAttachment {
   name: string;
   vote: string | number | null;
   isObserver: boolean;
-  isHost: boolean;
 }
 
 const DEFAULT_POINT_VALUES: (number | string)[] = [0, 0.5, 1, 2, 3, 5, 8, 13, 20, 40, 100, '?'];
@@ -29,27 +28,20 @@ const EMOJI_NAMES = [
 const MAX_MESSAGES_PER_SECOND = 20;
 const IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
-const HOST_ACTIONS = new Set(['set-stories', 'skip-setup', 'story-next', 'story-prev', 'story-goto', 'transfer-host']);
-
 function randomEmojiName(): string {
   return EMOJI_NAMES[Math.floor(Math.random() * EMOJI_NAMES.length)];
 }
 
 interface PlayerState extends Player {
   clientId: string;
-  isHost: boolean;
 }
 
 interface RoundState {
   revealed: boolean;
-  storyDescription: string;
   roundStartTime: number;
   revealTime: number;
   finalVote: string | number | null;
   pointValues: (number | string)[];
-  stories: string[];
-  currentStoryIndex: number;
-  sessionReady: boolean;
   discussionPausedAt: number;
   discussionPausedTotal: number;
 }
@@ -57,14 +49,10 @@ interface RoundState {
 export class PokerSessionSqlite extends DurableObject {
   private players: Map<WebSocket, PlayerState> = new Map();
   private revealed: boolean = false;
-  private storyDescription: string = '';
   private roundStartTime: number = 0;
   private revealTime: number = 0;
   private finalVote: string | number | null = null;
   private pointValues: (number | string)[] = DEFAULT_POINT_VALUES;
-  private stories: string[] = [];
-  private currentStoryIndex: number = 0;
-  private sessionReady: boolean = false;
   private discussionPausedAt: number = 0;
   private discussionPausedTotal: number = 0;
   private messageCounts: Map<WebSocket, { count: number; windowStart: number }> = new Map();
@@ -79,7 +67,6 @@ export class PokerSessionSqlite extends DurableObject {
           name: attachment.name,
           vote: attachment.vote,
           isObserver: attachment.isObserver,
-          isHost: attachment.isHost ?? false,
         });
       }
     }
@@ -87,14 +74,10 @@ export class PokerSessionSqlite extends DurableObject {
       const saved = await this.ctx.storage.get<RoundState>('roundState');
       if (saved) {
         this.revealed = saved.revealed;
-        this.storyDescription = saved.storyDescription;
         this.roundStartTime = saved.roundStartTime;
         this.revealTime = saved.revealTime;
         this.finalVote = saved.finalVote;
         this.pointValues = saved.pointValues;
-        this.stories = saved.stories;
-        this.currentStoryIndex = saved.currentStoryIndex;
-        this.sessionReady = saved.sessionReady;
         this.discussionPausedAt = saved.discussionPausedAt ?? 0;
         this.discussionPausedTotal = saved.discussionPausedTotal ?? 0;
       }
@@ -104,14 +87,10 @@ export class PokerSessionSqlite extends DurableObject {
   private saveRoundState(): void {
     this.ctx.storage.put('roundState', {
       revealed: this.revealed,
-      storyDescription: this.storyDescription,
       roundStartTime: this.roundStartTime,
       revealTime: this.revealTime,
       finalVote: this.finalVote,
       pointValues: this.pointValues,
-      stories: this.stories,
-      currentStoryIndex: this.currentStoryIndex,
-      sessionReady: this.sessionReady,
       discussionPausedAt: this.discussionPausedAt,
       discussionPausedTotal: this.discussionPausedTotal,
     } satisfies RoundState);
@@ -120,7 +99,7 @@ export class PokerSessionSqlite extends DurableObject {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname.endsWith('/info')) {
-      return Response.json({ playerCount: this.players.size, sessionReady: this.sessionReady });
+      return Response.json({ playerCount: this.players.size });
     }
     const { 0: client, 1: server } = new WebSocketPair();
     this.ctx.acceptWebSocket(server);
@@ -136,33 +115,6 @@ export class PokerSessionSqlite extends DurableObject {
     }
     entry.count++;
     return entry.count <= MAX_MESSAGES_PER_SECOND;
-  }
-
-  private isHost(ws: WebSocket): boolean {
-    return this.players.get(ws)?.isHost === true;
-  }
-
-  private assignNewHost(): void {
-    for (const [ws, player] of this.players) {
-      if (!player.isObserver) {
-        player.isHost = true;
-        ws.serializeAttachment({
-          clientId: player.clientId,
-          name: player.name,
-          vote: player.vote,
-          isObserver: player.isObserver,
-          isHost: true,
-        });
-        return;
-      }
-    }
-  }
-
-  private hasHost(): boolean {
-    for (const player of this.players.values()) {
-      if (player.isHost) return true;
-    }
-    return false;
   }
 
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
@@ -195,11 +147,6 @@ export class PokerSessionSqlite extends DurableObject {
       return;
     }
 
-    if (HOST_ACTIONS.has(type) && !this.isHost(ws)) {
-      ws.send(JSON.stringify({ type: 'error', message: 'Only the host can do that' }));
-      return;
-    }
-
     switch (type) {
       case 'join': {
         const clientId = String(data.clientId ?? '').trim();
@@ -228,18 +175,11 @@ export class PokerSessionSqlite extends DurableObject {
         }
 
         const isObserver = Boolean(data.isObserver);
-
-        const isFirstPlayer = this.players.size === 0 && !this.sessionReady;
-        if (!isFirstPlayer && !this.sessionReady) {
-          this.sessionReady = true;
-        }
-        const shouldBeHost = reconnectEntry?.player.isHost ?? (!isObserver && !this.hasHost());
         const player: PlayerState = {
           clientId,
           name: canonicalName,
           vote: reconnectEntry?.player.vote ?? null,
           isObserver,
-          isHost: shouldBeHost,
         };
         this.players.set(ws, player);
         ws.serializeAttachment(player);
@@ -247,7 +187,6 @@ export class PokerSessionSqlite extends DurableObject {
           type: 'joined',
           clientId,
           name: player.name,
-          isHost: player.isHost,
           isObserver: player.isObserver,
         }));
         this.broadcastState();
@@ -282,7 +221,6 @@ export class PokerSessionSqlite extends DurableObject {
           name: player.name,
           vote: player.vote,
           isObserver: player.isObserver,
-          isHost: player.isHost,
         });
         this.broadcastState();
         break;
@@ -343,107 +281,9 @@ export class PokerSessionSqlite extends DurableObject {
             name: player.name,
             vote: null,
             isObserver: player.isObserver,
-            isHost: player.isHost,
           });
         }
-        if (this.stories.length > 0 && this.currentStoryIndex < this.stories.length - 1) {
-          this.currentStoryIndex++;
-          this.storyDescription = this.stories[this.currentStoryIndex];
-        } else if (this.stories.length === 0) {
-          this.storyDescription = '';
-        }
         this.broadcastState();
-        break;
-      }
-
-      case 'story': {
-        const rawDescription = String(data.text ?? '').slice(0, 2000);
-        this.storyDescription = rawDescription;
-        this.broadcastState();
-        break;
-      }
-
-      case 'skip-setup': {
-        this.sessionReady = true;
-        this.broadcastState();
-        break;
-      }
-
-      case 'set-stories': {
-        const raw = data.stories;
-        if (!Array.isArray(raw)) {
-          ws.send(JSON.stringify({ type: 'error', message: 'stories must be an array' }));
-          return;
-        }
-        this.sessionReady = true;
-        this.stories = raw
-          .map((s: unknown) => String(s ?? '').trim().slice(0, 2000))
-          .filter((s: string) => s.length > 0)
-          .slice(0, 50);
-        this.currentStoryIndex = 0;
-        if (this.stories.length > 0) {
-          this.storyDescription = this.stories[0];
-        } else {
-          this.storyDescription = '';
-        }
-        this.broadcastState();
-        break;
-      }
-
-      case 'story-next': {
-        if (this.stories.length > 0 && this.currentStoryIndex < this.stories.length - 1) {
-          this.currentStoryIndex++;
-          this.storyDescription = this.stories[this.currentStoryIndex];
-        }
-        this.broadcastState();
-        break;
-      }
-
-      case 'story-prev': {
-        if (this.stories.length > 0 && this.currentStoryIndex > 0) {
-          this.currentStoryIndex--;
-          this.storyDescription = this.stories[this.currentStoryIndex];
-        }
-        this.broadcastState();
-        break;
-      }
-
-      case 'story-goto': {
-        const idx = Number(data.index);
-        if (this.stories.length > 0 && Number.isInteger(idx) && idx >= 0 && idx < this.stories.length) {
-          this.currentStoryIndex = idx;
-          this.storyDescription = this.stories[this.currentStoryIndex];
-        }
-        this.broadcastState();
-        break;
-      }
-
-      case 'transfer-host': {
-        const targetName = String(data.name ?? '').trim();
-        for (const [targetWs, targetPlayer] of this.players) {
-          if (targetPlayer.name === targetName && !targetPlayer.isObserver) {
-            const currentHost = this.players.get(ws)!;
-            currentHost.isHost = false;
-            ws.serializeAttachment({
-              clientId: currentHost.clientId,
-              name: currentHost.name,
-              vote: currentHost.vote,
-              isObserver: currentHost.isObserver,
-              isHost: false,
-            });
-            targetPlayer.isHost = true;
-            targetWs.serializeAttachment({
-              clientId: targetPlayer.clientId,
-              name: targetPlayer.name,
-              vote: targetPlayer.vote,
-              isObserver: targetPlayer.isObserver,
-              isHost: true,
-            });
-            this.broadcastState();
-            return;
-          }
-        }
-        ws.send(JSON.stringify({ type: 'error', message: 'Player not found or is an observer' }));
         break;
       }
 
@@ -454,22 +294,14 @@ export class PokerSessionSqlite extends DurableObject {
   }
 
   async webSocketClose(ws: WebSocket, _code: number, _reason: string, _wasClean: boolean): Promise<void> {
-    const wasHost = this.players.get(ws)?.isHost === true;
     this.players.delete(ws);
     this.messageCounts.delete(ws);
-    if (wasHost) {
-      this.assignNewHost();
-    }
     this.broadcastState();
   }
 
   async webSocketError(ws: WebSocket, _error: unknown): Promise<void> {
-    const wasHost = this.players.get(ws)?.isHost === true;
     this.players.delete(ws);
     this.messageCounts.delete(ws);
-    if (wasHost) {
-      this.assignNewHost();
-    }
     this.broadcastState();
   }
 
@@ -495,7 +327,6 @@ export class PokerSessionSqlite extends DurableObject {
       voted: player.vote !== null,
       vote: this.revealed ? player.vote : null,
       isObserver: player.isObserver,
-      isHost: player.isHost,
     }));
 
     this.saveRoundState();
@@ -504,14 +335,10 @@ export class PokerSessionSqlite extends DurableObject {
       type: 'state',
       players: playerList,
       revealed: this.revealed,
-      story: this.storyDescription,
       roundStartTime: this.roundStartTime,
       revealTime: this.revealTime,
       finalVote: this.finalVote,
       pointValues: this.pointValues,
-      stories: this.stories,
-      currentStoryIndex: this.currentStoryIndex,
-      sessionReady: this.sessionReady,
       discussionPausedAt: this.discussionPausedAt,
       discussionPausedTotal: this.discussionPausedTotal,
     });

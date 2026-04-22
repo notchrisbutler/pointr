@@ -85,24 +85,14 @@ describe("worker routes", () => {
     expect(response.status).toBe(200);
     expect(html).toContain('<body data-session-id="abc12">');
     expect(html).toContain('id="lobby"');
-    expect(html).toContain('id="story-setup" class="hidden stage entry-stage"');
     expect(html).toContain('id="session" class="hidden stage"');
     expect(html).toContain('id="name-input"');
     expect(html).toContain('id="join-player-btn"');
     expect(html).toContain('id="join-observer-btn"');
     expect(html).toContain('id="join-count"');
-    expect(html).toContain('id="story-add-input"');
-    expect(html).toContain('id="story-add-btn"');
-    expect(html).toContain('id="story-list-items"');
-    expect(html).toContain('id="story-start-btn"');
-    expect(html).toContain('id="story-nav"');
-    expect(html).toContain('id="story-prev-btn"');
-    expect(html).toContain('id="story-next-btn"');
-    expect(html).toContain('id="story-progress"');
     expect(html).toContain('id="session-id-copy"');
     expect(html).toContain('id="timer-voting"');
     expect(html).toContain('id="timer-discussion"');
-    expect(html).toContain('id="story"');
     expect(html).toContain('id="cards-row"');
     expect(html).toContain('id="show-votes-btn"');
     expect(html).toContain('id="new-round-btn"');
@@ -114,6 +104,16 @@ describe("worker routes", () => {
     expect(html).toContain('id="players-count"');
     expect(html).toContain('id="players-list"');
     expect(html).toContain('id="toast"');
+    expect(html).not.toContain('id="story-setup"');
+    expect(html).not.toContain('id="story-add-input"');
+    expect(html).not.toContain('id="story-add-btn"');
+    expect(html).not.toContain('id="story-list-items"');
+    expect(html).not.toContain('id="story-start-btn"');
+    expect(html).not.toContain('id="story-nav"');
+    expect(html).not.toContain('id="story-prev-btn"');
+    expect(html).not.toContain('id="story-next-btn"');
+    expect(html).not.toContain('id="story-progress"');
+    expect(html).not.toContain('id="story"');
   });
 
   it("uses a route-scoped create rate-limit key", async () => {
@@ -182,6 +182,7 @@ describe("worker routes", () => {
 
     expect(response.status).toBe(200);
     expect(idFromName).toHaveBeenCalledWith("abc12");
+    expect(await response.json()).toEqual({ playerCount: 0 });
   });
 
   it("uses a normalized session-scoped websocket rate-limit key", async () => {
@@ -262,8 +263,8 @@ function createRoutableTestEnv(): {
         idFromName,
         get: vi.fn().mockReturnValue({
           fetch: vi.fn(async (request: Request) => {
-            if (new URL(request.url).pathname === "/info") {
-              return new Response(JSON.stringify({ ok: true }), {
+           if (new URL(request.url).pathname === "/info") {
+              return new Response(JSON.stringify({ playerCount: 0 }), {
                 status: 200,
                 headers: { "Content-Type": "application/json" },
               });

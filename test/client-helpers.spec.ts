@@ -38,12 +38,13 @@ describe("client helpers", () => {
   });
 
   it("applies the joined acknowledgement as authoritative self state", () => {
-    expect(
-      applyJoinedPayload(
-        { clientId: "", name: "", amHost: false, isObserver: false },
-        { type: "joined", clientId: "client-9", name: "🦊", isHost: true, isObserver: false }
-      )
-    ).toEqual({ clientId: "client-9", name: "🦊", amHost: true, isObserver: false });
+    const next = applyJoinedPayload(
+      { clientId: "", name: "", isObserver: false },
+      { type: "joined", clientId: "client-9", name: "🦊", isObserver: false }
+    );
+
+    expect(next).toEqual({ clientId: "client-9", name: "🦊", isObserver: false });
+    expect(next).not.toHaveProperty("amHost");
   });
 
   it("serializes getOrCreateClientId without hidden helper dependencies", () => {

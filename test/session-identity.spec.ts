@@ -3,7 +3,7 @@ import { chooseCanonicalName, findReconnectCandidate } from "../src/session-iden
 
 describe("session identity helpers", () => {
   it("keeps the existing canonical name for reconnects", () => {
-    const players = [{ clientId: "client-1", name: "🦊", vote: null, isObserver: false, isHost: true }];
+    const players = [{ clientId: "client-1", name: "🦊", vote: null, isObserver: false }];
 
     expect(
       chooseCanonicalName({ requestedName: "", existingPlayer: players[0], players })
@@ -11,7 +11,7 @@ describe("session identity helpers", () => {
   });
 
   it("suffixes colliding names for different client ids", () => {
-    const players = [{ clientId: "client-1", name: "Alice", vote: null, isObserver: false, isHost: true }];
+    const players = [{ clientId: "client-1", name: "Alice", vote: null, isObserver: false }];
 
     expect(
       chooseCanonicalName({ requestedName: "Alice", existingPlayer: null, players })
@@ -19,7 +19,7 @@ describe("session identity helpers", () => {
   });
 
   it("matches reconnects by client id instead of display name", () => {
-    const players = [{ clientId: "client-1", name: "🦊", vote: 5, isObserver: false, isHost: true }];
+    const players = [{ clientId: "client-1", name: "🦊", vote: 5, isObserver: false }];
 
     expect(findReconnectCandidate(players, "client-1")?.name).toBe("🦊");
     expect(findReconnectCandidate(players, "client-2")).toBeUndefined();

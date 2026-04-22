@@ -27,9 +27,7 @@ export const CLIENT_JS = `(function() {
   var discussionInterval = null;
   var lastRoundStartTime = null;
   var lastTimerKey = null;
-  var localStories = [];
   var hasEnteredSession = false;
-  var amHost = false;
   var timedOut = false;
 
   // ── DOM refs ──
@@ -41,7 +39,6 @@ export const CLIENT_JS = `(function() {
   var sessionIdCopy = document.getElementById('session-id-copy');
   var votingTimerEl = document.getElementById('timer-voting');
   var discussionTimerEl = document.getElementById('timer-discussion');
-  var storyEl = document.getElementById('story');
   var cardsRow = document.getElementById('cards-row');
   var showVotesBtn = document.getElementById('show-votes-btn');
   var newRoundBtn = document.getElementById('new-round-btn');
@@ -53,15 +50,6 @@ export const CLIENT_JS = `(function() {
   var playersCount = document.getElementById('players-count');
   var playersList = document.getElementById('players-list');
   var toastEl = document.getElementById('toast');
-  var storySetup = document.getElementById('story-setup');
-  var storyAddInput = document.getElementById('story-add-input');
-  var storyAddBtn = document.getElementById('story-add-btn');
-  var storyListItems = document.getElementById('story-list-items');
-  var storyStartBtn = document.getElementById('story-start-btn');
-  var storyNav = document.getElementById('story-nav');
-  var storyPrevBtn = document.getElementById('story-prev-btn');
-  var storyNextBtn = document.getElementById('story-next-btn');
-  var storyProgress = document.getElementById('story-progress');
 
   var sessionId = document.body.dataset.sessionId;
   var clientId = (${getOrCreateClientId.toString()})(sessionStorage, sessionId, function() { return crypto.randomUUID(); });
@@ -137,7 +125,6 @@ export const CLIENT_JS = `(function() {
         selfState = (${applyJoinedPayload.toString()})(selfState, data);
         clientId = selfState.clientId;
         name = selfState.name;
-        amHost = selfState.amHost;
         isObserver = selfState.isObserver;
       } else if (data.type === 'state') {
         handleState(data);
@@ -167,15 +154,6 @@ export const CLIENT_JS = `(function() {
 
   function handleState(data) {
     // Timers — only update when timer-relevant state changes
-    // Determine if we are the host — match by name, updating local name if server deduplicated it
-    var me = data.players.find(function(p) { return p.name === name; });
-    if (!me) {
-      // Server may have added a suffix for deduplication — find our suffixed name
-      me = data.players.find(function(p) { return p.name.indexOf(name) === 0 && p.name !== name; });
-      if (me) { name = me.name; }
-    }
-    amHost = me ? me.isHost : false;
-
     // Clear local selection when round resets
     if (data.roundStartTime === 0 && !data.revealed) {
       selectedVote = null;
@@ -193,19 +171,6 @@ export const CLIENT_JS = `(function() {
     // Render players
     renderPlayers(data.players, data.revealed, data.roundStartTime, data.revealTime);
 
-    // Update story — when stories are loaded, always update (textarea is read-only)
-    if (data.stories && data.stories.length > 0) {
-      storyEl.value = data.story || '';
-      storyEl.readOnly = true;
-      storyEl.placeholder = 'Story loaded from list';
-    } else {
-      if (document.activeElement !== storyEl) {
-        storyEl.value = data.story || '';
-      }
-      storyEl.readOnly = false;
-      storyEl.placeholder = 'Paste a story, ticket URL, or description\\u2026';
-    }
-
     // Show/hide results
     if (data.revealed) {
       renderStats(data.players);
@@ -215,23 +180,10 @@ export const CLIENT_JS = `(function() {
       resultsRow.classList.add('hidden');
     }
 
-    // Story navigation
-    if (data.stories && data.stories.length > 0) {
-      storyNav.classList.remove('hidden');
-      storyProgress.textContent = (data.currentStoryIndex + 1) + ' of ' + data.stories.length;
-      storyPrevBtn.disabled = data.currentStoryIndex === 0;
-      storyNextBtn.disabled = data.currentStoryIndex === data.stories.length - 1;
-    } else {
-      storyNav.classList.add('hidden');
-    }
-
-    // Session entry: decide whether to show story setup or go straight to session
+    // Enter the session as soon as the first state payload arrives.
     if (!hasEnteredSession) {
       hasEnteredSession = true;
-      var target = data.sessionReady ? session : storySetup;
-      transitionView(lobby, target);
-    } else if (data.sessionReady && !storySetup.classList.contains('hidden') && session.classList.contains('hidden')) {
-      transitionView(storySetup, session);
+      transitionView(lobby, session);
     }
 
     // Primary action button state:
@@ -247,16 +199,6 @@ export const CLIENT_JS = `(function() {
     } else {
       showVotesBtn.textContent = 'Show Votes';
       showVotesBtn.disabled = false;
-    }
-
-    // Host-only controls visibility (story management only)
-    if (data.stories && data.stories.length > 0) {
-      storyPrevBtn.style.display = amHost ? '' : 'none';
-      storyNextBtn.style.display = amHost ? '' : 'none';
-    }
-    // Story textarea: anyone can edit in generic mode (no pre-loaded stories)
-    if (!data.stories || data.stories.length === 0) {
-      storyEl.readOnly = false;
     }
   }
 
@@ -649,86 +591,10 @@ export const CLIENT_JS = `(function() {
     send({ type: 'clear' });
   });
 
-  storyEl.addEventListener('blur', function() {
-    send({ type: 'story', text: storyEl.value });
-  });
-
   sessionIdCopy.addEventListener('click', function() {
     navigator.clipboard.writeText(location.href).then(function() {
       showToast('Invite link copied!');
     });
-  });
-
-  // ── Story setup ──
-
-  function renderLocalStories() {
-    while (storyListItems.firstChild) {
-      storyListItems.removeChild(storyListItems.firstChild);
-    }
-    localStories.forEach(function(text, i) {
-      var item = document.createElement('div');
-      item.className = 'story-list-item';
-
-      var numSpan = document.createElement('span');
-      numSpan.className = 'story-num';
-      numSpan.textContent = String(i + 1) + '.';
-      item.appendChild(numSpan);
-
-      var textSpan = document.createElement('span');
-      textSpan.className = 'story-text';
-      textSpan.textContent = text;
-      item.appendChild(textSpan);
-
-      var removeBtn = document.createElement('button');
-      removeBtn.className = 'story-remove';
-      removeBtn.textContent = '\\u00d7';
-      removeBtn.setAttribute('data-index', String(i));
-      item.appendChild(removeBtn);
-
-      storyListItems.appendChild(item);
-    });
-  }
-
-  storyAddBtn.addEventListener('click', function() {
-    var text = storyAddInput.value.trim();
-    if (!text) return;
-    localStories.push(text);
-    storyAddInput.value = '';
-    renderLocalStories();
-    storyAddInput.focus();
-  });
-
-  storyAddInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      storyAddBtn.click();
-    }
-  });
-
-  storyListItems.addEventListener('click', function(e) {
-    var btn = e.target.closest('.story-remove');
-    if (!btn) return;
-    var idx = Number(btn.getAttribute('data-index'));
-    localStories.splice(idx, 1);
-    renderLocalStories();
-  });
-
-  storyStartBtn.addEventListener('click', function() {
-    if (localStories.length > 0) {
-      send({ type: 'set-stories', stories: localStories });
-    } else {
-      send({ type: 'skip-setup' });
-    }
-  });
-
-
-  // ── Story navigation ──
-
-  storyPrevBtn.addEventListener('click', function() {
-    send({ type: 'story-prev' });
-  });
-
-  storyNextBtn.addEventListener('click', function() {
-    send({ type: 'story-next' });
   });
 
 })();

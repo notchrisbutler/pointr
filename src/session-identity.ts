@@ -3,7 +3,6 @@ export interface IdentityPlayer {
   name: string;
   vote: string | number | null;
   isObserver: boolean;
-  isHost: boolean;
 }
 
 const EMOJI_FALLBACK = ["🦊", "🐙", "🐲", "🎲", "🍕", "🚀"];
