@@ -23,6 +23,12 @@
     { "name": "RATE_LIMITER_INFO", "namespace_id": "1003", "simple": { "limit": 60, "period": 60 } }
   ],
   "routes": [
-    { "pattern": "pointr.chrisbutler.dev", "custom_domain": true }
-  ]
+    { "pattern": "pointr.btlr.me", "custom_domain": true }
+  ],
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true
+    }
+  }
 }
