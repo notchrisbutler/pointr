@@ -41,7 +41,7 @@ interface RoundState {
   discussionPausedTotal: number;
 }
 
-export class PokerSession extends DurableObject {
+export class PokerSessionSqlite extends DurableObject {
   private players: Map<WebSocket, PlayerState> = new Map();
   private revealed: boolean = false;
   private storyDescription: string = '';

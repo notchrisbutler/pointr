@@ -5,11 +5,16 @@
   "compatibility_date": "2026-04-21",
   "durable_objects": {
     "bindings": [
-      { "name": "POKER_SESSION", "class_name": "PokerSession" }
+      { "name": "POKER_SESSION", "class_name": "PokerSessionSqlite" }
     ]
   },
   "migrations": [
-    { "tag": "v1", "new_classes": ["PokerSession"] }
+    { "tag": "v1", "new_classes": ["PokerSession"] },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["PokerSessionSqlite"],
+      "deleted_classes": ["PokerSession"]
+    }
   ],
   "ratelimits": [
     { "name": "RATE_LIMITER_CREATE", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },

@@ -25,7 +25,8 @@ app.get('/', (c) => c.html(homePage()));
 
 app.post('/create', async (c) => {
   const ip = c.req.header('CF-Connecting-IP') || 'unknown';
-  const { success } = await c.env.RATE_LIMITER_CREATE.limit({ key: ip });
+  const createKey = `create:${ip}`;
+  const { success } = await c.env.RATE_LIMITER_CREATE.limit({ key: createKey });
   if (!success) {
     return c.text('Rate limit exceeded. Try again later.', 429);
   }
@@ -39,7 +40,8 @@ app.get('/api/:id/info', async (c) => {
     return c.json({ error: 'Invalid session id' }, 400);
   }
   const ip = c.req.header('CF-Connecting-IP') || 'unknown';
-  const { success } = await c.env.RATE_LIMITER_INFO.limit({ key: ip });
+  const infoKey = `info:${sessionId}:${ip}`;
+  const { success } = await c.env.RATE_LIMITER_INFO.limit({ key: infoKey });
   if (!success) {
     return c.json({ error: 'Rate limit exceeded' }, 429);
   }
@@ -58,7 +60,8 @@ app.get('/ws/:id', async (c) => {
     return c.text('Expected WebSocket', 426);
   }
   const ip = c.req.header('CF-Connecting-IP') || 'unknown';
-  const { success } = await c.env.RATE_LIMITER_WS.limit({ key: ip });
+  const wsKey = `ws:${sessionId}:${ip}`;
+  const { success } = await c.env.RATE_LIMITER_WS.limit({ key: wsKey });
   if (!success) {
     return c.text('Rate limit exceeded. Try again later.', 429);
   }
@@ -67,7 +70,7 @@ app.get('/ws/:id', async (c) => {
   return stub.fetch(c.req.raw);
 });
 
-export { PokerSession } from './session';
+export { PokerSessionSqlite } from './session';
 
 app.get('/client.js', (c) => {
   return c.body(CLIENT_JS, 200, {

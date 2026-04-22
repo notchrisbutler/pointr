@@ -35,26 +35,22 @@ Fast, free planning poker for agile teams
 ## Quick Start
 
 ```bash
-# Clone the repository
-git clone https://github.com/notchrisbutler/pointr.git
-cd pointr
-
-# Install dependencies
 npm install
-
-# Run locally
+npm run types
+npm test
 npm run dev
 ```
 
 ## Deploy
 
 ```bash
-# Authenticate with Cloudflare (one-time)
-npx wrangler login
-
-# Deploy to Workers
+npm run typecheck
+npm test
+npx wrangler deploy --dry-run
 npm run deploy
 ```
+
+Deploying the SQLite-backed `PokerSessionSqlite` class resets active session state from the legacy Durable Object class. This is acceptable for Pointr because sessions are ephemeral and do not represent durable business records.
 
 CI/CD is configured via GitHub Actions — pushes to `main` automatically deploy when source files change.
 
@@ -69,7 +65,7 @@ CI/CD is configured via GitHub Actions — pushes to `main` automatically deploy
 ```
 src/
   index.ts        — Hono app, routes, Durable Object export
-  session.ts      — PokerSession Durable Object (state + WebSocket handler)
+  session.ts      — PokerSessionSqlite Durable Object (state + WebSocket handler)
   client.ts       — Client-side JS served as /client.js
   pages/
     home.ts       — Home page template (create/join)
