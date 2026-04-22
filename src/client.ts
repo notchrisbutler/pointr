@@ -64,7 +64,7 @@ export const CLIENT_JS = `(function() {
   var storyProgress = document.getElementById('story-progress');
 
   var sessionId = document.body.dataset.sessionId;
-  var clientId = (${getOrCreateClientId.toString()})(localStorage, sessionId, function() { return crypto.randomUUID(); });
+  var clientId = (${getOrCreateClientId.toString()})(sessionStorage, sessionId, function() { return crypto.randomUUID(); });
   var joinCountEl = document.getElementById('join-count');
 
   // Fetch player count for lobby

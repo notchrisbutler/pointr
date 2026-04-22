@@ -24,4 +24,15 @@ describe("session identity helpers", () => {
     expect(findReconnectCandidate(players, "client-1")?.name).toBe("🦊");
     expect(findReconnectCandidate(players, "client-2")).toBeUndefined();
   });
+
+  it("uses the provided random fallback for anonymous names", () => {
+    expect(
+      chooseCanonicalName({
+        requestedName: "",
+        existingPlayer: null,
+        players: [],
+        createFallbackName: () => "🚀",
+      })
+    ).toBe("🚀");
+  });
 });

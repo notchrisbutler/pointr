@@ -16,11 +16,24 @@ interface PlayerAttachment {
 }
 
 const DEFAULT_POINT_VALUES: (number | string)[] = [0, 0.5, 1, 2, 3, 5, 8, 13, 20, 40, 100, '?'];
+const EMOJI_NAMES = [
+  '🦊', '🐙', '🐲', '🎲', '🍕', '🚀', '🎸', '🎯', '🧩', '🐼',
+  '🎭', '🐺', '🦅', '🐸', '🤖', '👻', '🦉', '🐧', '🦈', '🎩',
+  '🐻', '🦁', '🐯', '🐨', '🐵', '🦎', '🐢', '🦖', '🐳', '🐬',
+  '🦍', '🦏', '🐘', '🦬', '🦣', '🐗', '🦇', '🐊', '🐆', '🐃',
+  '🧠', '🛸', '⚡', '🔥', '💎', '🏴‍☠️', '⚙️', '🗿', '🎪', '🏔️',
+  '🌋', '🧲', '🔭', '🧪', '🛡️', '⚔️', '🏹', '🪓', '🔱', '🪐',
+  '😎', '🤓', '🧐', '😏', '🫡', '🤠', '🥷', '🧙', '🧑‍🚀', '🧑‍💻',
+];
 
 const MAX_MESSAGES_PER_SECOND = 20;
 const IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
 const HOST_ACTIONS = new Set(['set-stories', 'skip-setup', 'story-next', 'story-prev', 'story-goto', 'transfer-host']);
+
+function randomEmojiName(): string {
+  return EMOJI_NAMES[Math.floor(Math.random() * EMOJI_NAMES.length)];
+}
 
 interface PlayerState extends Player {
   clientId: string;
@@ -205,6 +218,7 @@ export class PokerSessionSqlite extends DurableObject {
           requestedName: String(data.name ?? ''),
           existingPlayer: reconnectEntry?.player ?? null,
           players: entries.map(({ player }) => player),
+          createFallbackName: randomEmojiName,
         });
 
         if (reconnectEntry && reconnectEntry.socket !== ws) {

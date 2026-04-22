@@ -5,6 +5,7 @@ import {
   getOrCreateClientId,
   shouldReconnect,
 } from "../src/client-helpers";
+import { CLIENT_JS } from "../src/client";
 
 describe("client helpers", () => {
   it("reuses an existing client id for the same session", () => {
@@ -47,5 +48,10 @@ describe("client helpers", () => {
 
   it("serializes getOrCreateClientId without hidden helper dependencies", () => {
     expect(getOrCreateClientId.toString()).not.toContain("getClientStorageKey(");
+  });
+
+  it("uses tab-scoped sessionStorage for browser client identity", () => {
+    expect(CLIENT_JS).toContain("sessionStorage");
+    expect(CLIENT_JS).not.toContain("localStorage");
   });
 });
