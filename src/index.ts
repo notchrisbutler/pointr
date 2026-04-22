@@ -3,9 +3,22 @@ import { HOME_CLIENT_JS } from './home-client';
 import { homePage } from './pages/home';
 import { sessionPage } from './pages/session';
 import { CLIENT_JS } from './client';
-import { isValidSessionId } from './session-id';
+import { isValidSessionId, normalizeSessionId } from './session-id';
 
 type Bindings = Env;
+
+const SESSION_ID_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
+
+function createSessionId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(5));
+  let id = '';
+
+  for (const byte of bytes) {
+    id += SESSION_ID_ALPHABET[byte % SESSION_ID_ALPHABET.length];
+  }
+
+  return id;
+}
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -31,15 +44,16 @@ app.post('/create', async (c) => {
   if (!success) {
     return c.text('Rate limit exceeded. Try again later.', 429);
   }
-  const id = crypto.randomUUID().replace(/-/g, '').substring(0, 8);
+  const id = createSessionId();
   return c.redirect('/' + id);
 });
 
 app.get('/api/:id/info', async (c) => {
-  const sessionId = c.req.param('id');
-  if (!isValidSessionId(sessionId)) {
+  const routeSessionId = c.req.param('id');
+  if (!isValidSessionId(routeSessionId)) {
     return c.json({ error: 'Invalid session id' }, 400);
   }
+  const sessionId = normalizeSessionId(routeSessionId);
   const ip = c.req.header('CF-Connecting-IP') || 'unknown';
   const infoKey = `info:${sessionId}:${ip}`;
   const { success } = await c.env.RATE_LIMITER_INFO.limit({ key: infoKey });
@@ -52,10 +66,11 @@ app.get('/api/:id/info', async (c) => {
 });
 
 app.get('/ws/:id', async (c) => {
-  const sessionId = c.req.param('id');
-  if (!isValidSessionId(sessionId)) {
+  const routeSessionId = c.req.param('id');
+  if (!isValidSessionId(routeSessionId)) {
     return c.text('Invalid session id', 400);
   }
+  const sessionId = normalizeSessionId(routeSessionId);
   const upgradeHeader = c.req.header('Upgrade');
   if (upgradeHeader !== 'websocket') {
     return c.text('Expected WebSocket', 426);
@@ -88,8 +103,9 @@ app.get('/home.js', (c) => {
 });
 
 app.get('/:id', (c) => {
-  const sessionId = c.req.param('id');
-  if (!isValidSessionId(sessionId)) return c.redirect('/');
+  const routeSessionId = c.req.param('id');
+  if (!isValidSessionId(routeSessionId)) return c.redirect('/');
+  const sessionId = normalizeSessionId(routeSessionId);
   return c.html(sessionPage(sessionId));
 });
 

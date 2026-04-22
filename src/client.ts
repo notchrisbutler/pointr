@@ -100,6 +100,19 @@ export const CLIENT_JS = `(function() {
     return mins + ':' + (secs < 10 ? '0' : '') + secs;
   }
 
+  function transitionView(fromEl, toEl) {
+    fromEl.classList.add('view-exit');
+    setTimeout(function() {
+      fromEl.classList.add('hidden');
+      fromEl.classList.remove('view-exit');
+      toEl.classList.remove('hidden');
+      toEl.classList.add('view-enter');
+      setTimeout(function() {
+        toEl.classList.remove('view-enter');
+      }, 250);
+    }, 200);
+  }
+
   // ── Connection ──
 
   function connect() {
@@ -216,18 +229,9 @@ export const CLIENT_JS = `(function() {
     if (!hasEnteredSession) {
       hasEnteredSession = true;
       var target = data.sessionReady ? session : storySetup;
-      // Fade out lobby, then fade in target
-      lobby.classList.add('view-exit');
-      setTimeout(function() {
-        lobby.classList.add('hidden');
-        lobby.classList.remove('view-exit');
-        target.classList.remove('hidden');
-        target.classList.add('view-enter');
-        // Remove animation class after it completes
-        setTimeout(function() {
-          target.classList.remove('view-enter');
-        }, 250);
-      }, 200);
+      transitionView(lobby, target);
+    } else if (data.sessionReady && !storySetup.classList.contains('hidden') && session.classList.contains('hidden')) {
+      transitionView(storySetup, session);
     }
 
     // Primary action button state:
@@ -536,29 +540,48 @@ export const CLIENT_JS = `(function() {
   // ── Timeout overlay ──
 
   function showTimeoutOverlay() {
-    // Prevent duplicate overlays
     if (document.getElementById('timeout-overlay')) return;
     clearTimers();
+
     var overlay = document.createElement('div');
     overlay.id = 'timeout-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)';
+    overlay.className = 'timeout-overlay';
+
     var card = document.createElement('div');
-    card.style.cssText = 'background:#1a1a2e;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:48px;text-align:center;max-width:400px';
+    card.className = 'card timeout-card';
+
     var heading = document.createElement('h2');
-    heading.style.cssText = 'color:#fff;margin:0 0 12px 0;font-size:1.4rem';
+    heading.className = 'timeout-title';
     heading.textContent = 'Session Ended';
+
     var msg = document.createElement('p');
-    msg.style.cssText = 'color:rgba(255,255,255,0.7);margin:0 0 32px 0;font-size:1rem;line-height:1.5';
+    msg.className = 'timeout-message';
     msg.textContent = 'This session has ended due to inactivity. Looks like everyone fell asleep!';
-    var btn = document.createElement('a');
-    btn.href = '/';
-    btn.style.cssText = 'display:inline-block;background:#6c5ce7;color:#fff;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:1rem;transition:background 0.15s';
-    btn.textContent = 'Back to Home';
-    btn.onmouseenter = function() { btn.style.background = '#7c6cf7'; };
-    btn.onmouseleave = function() { btn.style.background = '#6c5ce7'; };
+
+    var actions = document.createElement('div');
+    actions.className = 'timeout-actions';
+
+    var newSessionForm = document.createElement('form');
+    newSessionForm.id = 'timeout-new-session-form';
+    newSessionForm.action = '/create';
+    newSessionForm.method = 'POST';
+
+    var newSessionButton = document.createElement('button');
+    newSessionButton.type = 'submit';
+    newSessionButton.className = 'btn btn-primary';
+    newSessionButton.textContent = 'New Session';
+    newSessionForm.appendChild(newSessionButton);
+
+    var homeLink = document.createElement('a');
+    homeLink.href = '/';
+    homeLink.className = 'btn btn-secondary';
+    homeLink.textContent = 'Back to Home';
+
+    actions.appendChild(newSessionForm);
+    actions.appendChild(homeLink);
     card.appendChild(heading);
     card.appendChild(msg);
-    card.appendChild(btn);
+    card.appendChild(actions);
     overlay.appendChild(card);
     document.body.appendChild(overlay);
   }
@@ -695,16 +718,6 @@ export const CLIENT_JS = `(function() {
     } else {
       send({ type: 'skip-setup' });
     }
-    storySetup.classList.add('view-exit');
-    setTimeout(function() {
-      storySetup.classList.add('hidden');
-      storySetup.classList.remove('view-exit');
-      session.classList.remove('hidden');
-      session.classList.add('view-enter');
-      setTimeout(function() {
-        session.classList.remove('view-enter');
-      }, 250);
-    }, 200);
   });
 
 

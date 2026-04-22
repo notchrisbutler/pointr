@@ -4,11 +4,16 @@ export const SHARED_PAGE_STYLES = `
     --surface: #ffffff;
     --text: #111827;
     --text-muted: #6b7280;
+    --danger: #dc2626;
     --accent: #4f46e5;
     --accent-hover: #4338ca;
     --border: #e5e7eb;
     --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
     --radius: 8px;
+    --stage-top-offset: clamp(1.5rem, 12vh, 6.5rem);
+    --entry-panel-max-width: 420px;
+    --entry-panel-min-height: 22rem;
+    --session-panel-max-width: 860px;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -17,6 +22,7 @@ export const SHARED_PAGE_STYLES = `
       --surface: #1e293b;
       --text: #f1f5f9;
       --text-muted: #94a3b8;
+      --danger: #fca5a5;
       --accent: #6366f1;
       --accent-hover: #818cf8;
       --border: #334155;
@@ -32,7 +38,7 @@ export const SHARED_PAGE_STYLES = `
 
   html, body {
     height: 100%;
-    overflow: hidden;
+    overflow-x: hidden;
   }
 
   body {
@@ -68,14 +74,63 @@ export const SHARED_PAGE_STYLES = `
     box-shadow: var(--shadow);
     padding: 2.5rem 2rem;
     width: 100%;
-    max-width: 420px;
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
   }
 
+  .stage {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: var(--stage-top-offset) 1rem 1rem;
+    min-height: 0;
+  }
+
+  .entry-card {
+    max-width: var(--entry-panel-max-width);
+    min-height: var(--entry-panel-min-height);
+  }
+
   .header {
     text-align: center;
+  }
+
+  .tagline {
+    color: var(--text-muted);
+    font-size: 0.9375rem;
+    margin-top: 0.5rem;
+    line-height: 1.4;
+  }
+
+  .join-label {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    text-align: center;
+  }
+
+  .field-error {
+    min-height: 1.25rem;
+    font-size: 0.8125rem;
+    color: var(--danger);
+    text-align: center;
+  }
+
+  .create-section form {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .join-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .join-row {
+    display: flex;
+    gap: 0.5rem;
   }
 
   h1 {
@@ -110,6 +165,7 @@ export const SHARED_PAGE_STYLES = `
   .btn-primary {
     background: var(--accent);
     color: #ffffff;
+    width: 100%;
   }
 
   .btn-primary:hover {
@@ -137,6 +193,26 @@ export const SHARED_PAGE_STYLES = `
 
   .btn-secondary:active {
     transform: translateY(0);
+  }
+
+  @media (max-width: 480px) {
+    .join-row {
+      flex-direction: column;
+    }
+
+    .btn-secondary {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .stage {
+      padding-top: 1rem;
+    }
+
+    .entry-card {
+      min-height: 0;
+    }
   }
 
   input[type="text"],

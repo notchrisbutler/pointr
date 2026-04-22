@@ -30,12 +30,8 @@ export const SESSION_PAGE_STYLES = `
 
   /* ── Lobby ── */
 
-  #lobby {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
+  #lobby,
+  #story-setup {
     min-height: 0;
   }
 
@@ -78,17 +74,22 @@ export const SESSION_PAGE_STYLES = `
   /* ── Session layout ── */
 
   #session {
-    flex: 1;
-    max-width: 800px;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    overflow: hidden;
+  }
+
+  .session-shell {
     width: 100%;
+    max-width: var(--session-panel-max-width);
     margin: 0 auto;
-    padding: 1rem 1rem 0;
     display: flex;
     flex-direction: column;
     gap: 1rem;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    padding-bottom: 1rem;
   }
 
   /* ── Top bar ── */
@@ -249,6 +250,56 @@ export const SESSION_PAGE_STYLES = `
 
   .action-buttons .btn-primary {
     flex: 1;
+  }
+
+  .timeout-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.68);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .timeout-card {
+    max-width: 420px;
+    text-align: center;
+  }
+
+  .timeout-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .timeout-message {
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .timeout-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+  }
+
+  .timeout-actions form {
+    display: flex;
+  }
+
+  @media (max-width: 480px) {
+    .timeout-actions {
+      flex-direction: column;
+    }
+
+    .timeout-actions form,
+    .timeout-actions .btn {
+      width: 100%;
+    }
   }
 
   /* ── Results row ── */
@@ -496,19 +547,6 @@ export const SESSION_PAGE_STYLES = `
   }
 
   /* ── Story setup ── */
-
-  .story-setup-card {
-    max-width: 600px;
-  }
-
-  #story-setup {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    min-height: 0;
-  }
 
   .story-input-row {
     display: flex;

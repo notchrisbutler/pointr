@@ -30,13 +30,18 @@ describe("renderPage", () => {
 });
 
 describe("SHARED_PAGE_STYLES", () => {
-  it("contains the shared tokens and cross-page primitives", () => {
-    expect(SHARED_PAGE_STYLES).toContain(":root {");
-    expect(SHARED_PAGE_STYLES).toContain(".page-footer");
-    expect(SHARED_PAGE_STYLES).toContain(".card");
-    expect(SHARED_PAGE_STYLES).toContain(".btn");
-    expect(SHARED_PAGE_STYLES).toContain(".hidden");
+  it("contains shared stage and entry panel primitives", () => {
+    expect(SHARED_PAGE_STYLES).toContain("--stage-top-offset");
+    expect(SHARED_PAGE_STYLES).toContain(".stage {");
+    expect(SHARED_PAGE_STYLES).toContain(".entry-card {");
+    expect(SHARED_PAGE_STYLES).toContain(".field-error {");
     expect(SHARED_PAGE_STYLES).not.toContain(".page-main");
+  });
+
+  it("allows the document to scroll vertically when entry stages overflow", () => {
+    expect(SHARED_PAGE_STYLES).toContain("html, body {");
+    expect(SHARED_PAGE_STYLES).toContain("height: 100%;");
+    expect(SHARED_PAGE_STYLES).not.toContain("overflow: hidden;");
   });
 });
 
@@ -58,6 +63,7 @@ describe("SESSION_PAGE_STYLES", () => {
     expect(SESSION_PAGE_STYLES).toContain("@media (max-width: 480px) {");
     expect(SESSION_PAGE_STYLES).toContain(".card {");
     expect(SESSION_PAGE_STYLES).toContain("padding: 2rem 1.25rem;");
+    expect(SESSION_PAGE_STYLES).not.toContain(".story-setup-card {");
   });
 });
 
@@ -65,11 +71,20 @@ describe("home page", () => {
   it("renders home content without owning the document shell", () => {
     const content = renderHomeContent();
 
-    expect(content).toContain('<div class="page-main">');
+    expect(content).toContain('<div class="page-main stage">');
     expect(content).toContain("Create Session");
     expect(content).toContain('id="sessionId"');
     expect(content).not.toContain("<!DOCTYPE html>");
     expect(content).not.toContain('<script src="/home.js"></script>');
+  });
+
+  it("renders the inline validation anchor for the join flow", () => {
+    const content = renderHomeContent();
+
+    expect(content).toContain('class="page-main stage"');
+    expect(content).toContain('class="card entry-card"');
+    expect(content).toContain('id="sessionId-error"');
+    expect(content).toContain('maxlength="5"');
   });
 
   it("wraps the home content with the shared page shell", () => {
@@ -84,33 +99,23 @@ describe("home page", () => {
 });
 
 describe("session sections", () => {
-  it("renders the lobby section with the join controls", () => {
-    const html = renderLobby("abc123");
-
-    expect(html).toContain('id="lobby"');
-    expect(html).toContain("Session: abc123");
-    expect(html).toContain('id="join-player-btn"');
-    expect(html).toContain('id="join-observer-btn"');
+  it("renders the lobby and setup sections inside the shared entry stage", () => {
+    expect(renderLobby("abc12")).toContain('id="lobby" class="stage"');
+    expect(renderLobby("abc12")).toContain('class="card entry-card"');
+    expect(renderStorySetup()).toContain('id="story-setup" class="hidden stage"');
+    expect(renderStorySetup()).toContain('class="card entry-card story-setup-card"');
   });
 
-  it("renders the story setup section independently", () => {
-    const html = renderStorySetup();
+  it("renders the active session board in the shared stage shell", () => {
+    const html = renderSessionBoard("abc12");
 
-    expect(html).toContain('id="story-setup" class="hidden"');
-    expect(html).toContain('id="story-add-input"');
-    expect(html).toContain('id="story-start-btn"');
-    expect(html).not.toContain('style="width:100%;"');
-  });
-
-  it("renders the active session board independently", () => {
-    const html = renderSessionBoard("abc123");
-
-    expect(html).toContain('id="session" class="hidden"');
+    expect(html).toContain('id="session" class="hidden stage"');
+    expect(html).toContain('class="session-shell"');
     expect(html).toContain('id="session-id-copy"');
     expect(html).toContain('id="cards-row"');
     expect(html).toContain('id="players-list"');
     expect(html).toContain('id="toast"');
-    expect(html).toContain(">abc123<");
+    expect(html).toContain(">abc12<");
   });
 });
 

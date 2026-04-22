@@ -20,7 +20,7 @@ Fast, free planning poker for agile teams
 - **Final vote selection** — pick the agreed estimate after reveal
 - **Stats on reveal** — average and median of numeric votes
 - **Dark mode** — automatic via `prefers-color-scheme`
-- **Mobile responsive** — adapts cleanly at small viewports
+- **Desktop-only session client** — mobile users are shown a desktop-only message
 - **Hibernate-safe** — player state survives Durable Object hibernation
 
 ## Quick Start
@@ -75,10 +75,10 @@ Each session is backed by a **Cloudflare Durable Object** that holds all state i
 | Route | Description |
 |-------|-------------|
 | `GET /` | Home page — create or join a session |
-| `POST /create` | Creates a session with a random 6-char ID |
-| `GET /:id` | Session page for a given ID |
-| `GET /ws/:id` | WebSocket upgrade, proxied to Durable Object |
-| `GET /api/:id/info` | JSON: player count and session status |
+| `POST /create` | Creates a session with a random 5-char lowercase alphanumeric ID |
+| `GET /:id` | Session page for a valid 5-char alphanumeric ID; invalid IDs redirect to `/`, mixed-case IDs normalize to lowercase |
+| `GET /ws/:id` | WebSocket upgrade for a valid 5-char alphanumeric ID; invalid IDs are rejected before Durable Object routing |
+| `GET /api/:id/info` | JSON player/session info for a valid 5-char alphanumeric ID; invalid IDs are rejected before Durable Object routing |
 
 ## Contributing
 

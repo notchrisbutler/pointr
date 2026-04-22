@@ -48,7 +48,7 @@ describe("worker routes", () => {
   });
 
   it("serves the session page without inline script execution", async () => {
-    const response = await SELF.fetch("http://example.com/abc123");
+    const response = await SELF.fetch("http://example.com/abc12");
     const html = await response.text();
 
     expect(html).not.toMatch(/<script(?![^>]*\bsrc=)/i);
@@ -56,15 +56,31 @@ describe("worker routes", () => {
     expect(html).toContain('<script src="/client.js"></script>');
   });
 
-  it("serves the session route with the DOM anchors the browser client expects", async () => {
-    const response = await SELF.fetch("http://example.com/abc123");
+  it("redirects invalid direct session routes to the home page", async () => {
+    const response = await app.request("http://example.com/abc1", { redirect: "manual" });
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("/");
+  });
+
+  it("accepts mixed-case direct session routes and renders the normalized id", async () => {
+    const response = await SELF.fetch("http://example.com/AbC12");
     const html = await response.text();
 
     expect(response.status).toBe(200);
-    expect(html).toContain('<body data-session-id="abc123">');
+    expect(html).toContain('<body data-session-id="abc12">');
+    expect(html).toContain("Pointr – abc12");
+  });
+
+  it("serves the session route with the DOM anchors the browser client expects", async () => {
+    const response = await SELF.fetch("http://example.com/abc12");
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(html).toContain('<body data-session-id="abc12">');
     expect(html).toContain('id="lobby"');
-    expect(html).toContain('id="story-setup" class="hidden"');
-    expect(html).toContain('id="session" class="hidden"');
+    expect(html).toContain('id="story-setup" class="hidden stage"');
+    expect(html).toContain('id="session" class="hidden stage"');
     expect(html).toContain('id="name-input"');
     expect(html).toContain('id="join-player-btn"');
     expect(html).toContain('id="join-observer-btn"');
@@ -110,11 +126,33 @@ describe("worker routes", () => {
     expect(createLimit).toHaveBeenCalledWith({ key: "create:203.0.113.5" });
   });
 
-  it("uses a session-scoped info rate-limit key", async () => {
+  it("creates a 5-character lowercase alphanumeric id", async () => {
+    const response = await app.request(
+      "http://example.com/create",
+      {
+        method: "POST",
+        headers: { "CF-Connecting-IP": "203.0.113.5" },
+      },
+      {
+        RATE_LIMITER_CREATE: { limit: vi.fn().mockResolvedValue({ success: true }) },
+        RATE_LIMITER_INFO: { limit: vi.fn() },
+        RATE_LIMITER_WS: { limit: vi.fn() },
+        POKER_SESSION: {
+          idFromName: vi.fn(),
+          get: vi.fn(),
+        },
+      } as unknown as Env,
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toMatch(/^\/[a-z0-9]{5}$/);
+  });
+
+  it("uses a normalized session-scoped info rate-limit key", async () => {
     const { env, infoLimit } = createTestEnv();
 
     const response = await app.request(
-      "http://example.com/api/abc123/info",
+      "http://example.com/api/AbC12/info",
       {
         headers: { "CF-Connecting-IP": "203.0.113.5" },
       },
@@ -122,14 +160,29 @@ describe("worker routes", () => {
     );
 
     expect(response.status).toBe(429);
-    expect(infoLimit).toHaveBeenCalledWith({ key: "info:abc123:203.0.113.5" });
+    expect(infoLimit).toHaveBeenCalledWith({ key: "info:abc12:203.0.113.5" });
   });
 
-  it("uses a session-scoped websocket rate-limit key", async () => {
+  it("passes the normalized lowercase id to idFromName for info routes", async () => {
+    const { env, idFromName } = createRoutableTestEnv();
+
+    const response = await app.request(
+      "http://example.com/api/AbC12/info",
+      {
+        headers: { "CF-Connecting-IP": "203.0.113.5" },
+      },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(idFromName).toHaveBeenCalledWith("abc12");
+  });
+
+  it("uses a normalized session-scoped websocket rate-limit key", async () => {
     const { env, wsLimit } = createTestEnv();
 
     const response = await app.request(
-      "http://example.com/ws/abc123",
+      "http://example.com/ws/AbC12",
       {
         headers: {
           "CF-Connecting-IP": "203.0.113.5",
@@ -140,7 +193,25 @@ describe("worker routes", () => {
     );
 
     expect(response.status).toBe(429);
-    expect(wsLimit).toHaveBeenCalledWith({ key: "ws:abc123:203.0.113.5" });
+    expect(wsLimit).toHaveBeenCalledWith({ key: "ws:abc12:203.0.113.5" });
+  });
+
+  it("passes the normalized lowercase id to idFromName for websocket routes", async () => {
+    const { env, idFromName } = createRoutableTestEnv();
+
+    const response = await app.request(
+      "http://example.com/ws/AbC12",
+      {
+        headers: {
+          "CF-Connecting-IP": "203.0.113.5",
+          Upgrade: "websocket",
+        },
+      },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(idFromName).toHaveBeenCalledWith("abc12");
   });
 });
 
@@ -167,5 +238,36 @@ function createTestEnv(): {
     createLimit,
     infoLimit,
     wsLimit,
+  };
+}
+
+function createRoutableTestEnv(): {
+  env: Env;
+  idFromName: ReturnType<typeof vi.fn>;
+} {
+  const idFromName = vi.fn().mockReturnValue("stub-id");
+
+  return {
+    env: {
+      RATE_LIMITER_CREATE: { limit: vi.fn() },
+      RATE_LIMITER_INFO: { limit: vi.fn().mockResolvedValue({ success: true }) },
+      RATE_LIMITER_WS: { limit: vi.fn().mockResolvedValue({ success: true }) },
+      POKER_SESSION: {
+        idFromName,
+        get: vi.fn().mockReturnValue({
+          fetch: vi.fn(async (request: Request) => {
+            if (new URL(request.url).pathname === "/info") {
+              return new Response(JSON.stringify({ ok: true }), {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+              });
+            }
+
+            return new Response("ws ok", { status: 200 });
+          }),
+        }),
+      },
+    } as unknown as Env,
+    idFromName,
   };
 }
