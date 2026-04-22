@@ -3,6 +3,8 @@
   "name": "pointr",
   "main": "src/index.ts",
   "compatibility_date": "2026-04-21",
+  "workers_dev": true,
+  "preview_urls": false,
   "durable_objects": {
     "bindings": [
       { "name": "POKER_SESSION", "class_name": "PokerSessionSqlite" }
