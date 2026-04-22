@@ -1,6 +1,6 @@
 export function renderLobby(sessionId: string): string {
   return `
-  <div id="lobby" class="stage">
+  <div id="lobby" class="stage entry-stage">
     <div class="card entry-card">
       <div class="header">
         <h1>Pointr</h1>
@@ -33,7 +33,7 @@ export function renderLobby(sessionId: string): string {
 
 export function renderStorySetup(): string {
   return `
-  <div id="story-setup" class="hidden stage">
+  <div id="story-setup" class="hidden stage entry-stage">
     <div class="card entry-card story-setup-card">
       <div class="header">
         <h1>Pointr</h1>

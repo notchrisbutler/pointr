@@ -10,7 +10,6 @@ export const SHARED_PAGE_STYLES = `
     --border: #e5e7eb;
     --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
     --radius: 8px;
-    --stage-top-offset: clamp(1.5rem, 12vh, 6.5rem);
     --entry-panel-max-width: 420px;
     --entry-panel-min-height: 22rem;
     --session-panel-max-width: 860px;
@@ -37,11 +36,12 @@ export const SHARED_PAGE_STYLES = `
   }
 
   html, body {
-    height: 100%;
+    min-height: 100%;
     overflow-x: hidden;
   }
 
   body {
+    min-height: 100vh;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
@@ -51,7 +51,6 @@ export const SHARED_PAGE_STYLES = `
 
   .page-footer {
     flex-shrink: 0;
-    margin-top: auto;
     text-align: center;
     padding: 0.5rem;
     font-size: 0.6875rem;
@@ -84,8 +83,14 @@ export const SHARED_PAGE_STYLES = `
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    padding: var(--stage-top-offset) 1rem 1rem;
+    padding: clamp(1.5rem, 12vh, 6.5rem) 1rem 1rem;
     min-height: 0;
+  }
+
+  .entry-stage {
+    align-items: center;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
   }
 
   .entry-card {
@@ -206,8 +211,8 @@ export const SHARED_PAGE_STYLES = `
   }
 
   @media (max-width: 640px) {
-    .stage {
-      padding-top: 1rem;
+    .entry-stage {
+      align-items: flex-start;
     }
 
     .entry-card {

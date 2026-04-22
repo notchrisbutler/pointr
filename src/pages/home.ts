@@ -2,10 +2,6 @@ import { renderPage } from "./layout";
 import { SHARED_PAGE_STYLES } from "./styles";
 
 const HOME_PAGE_STYLES = `
-  .page-main {
-    padding: 1rem;
-  }
-
   @media (max-width: 480px) {
     .card {
       padding: 2rem 1.25rem;
@@ -15,7 +11,7 @@ const HOME_PAGE_STYLES = `
 
 export function renderHomeContent(): string {
   return `
-  <div class="page-main stage">
+  <div class="stage entry-stage">
     <div class="card entry-card">
       <div class="header">
         <h1>Pointr</h1>
