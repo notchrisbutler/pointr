@@ -1,4 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
+import { chooseCanonicalName, findReconnectCandidate } from './session-identity';
 
 interface Player {
   name: string;
@@ -7,6 +8,7 @@ interface Player {
 }
 
 interface PlayerAttachment {
+  clientId: string;
   name: string;
   vote: string | number | null;
   isObserver: boolean;
@@ -15,26 +17,13 @@ interface PlayerAttachment {
 
 const DEFAULT_POINT_VALUES: (number | string)[] = [0, 0.5, 1, 2, 3, 5, 8, 13, 20, 40, 100, '?'];
 
-const EMOJI_NAMES = [
-  '🦊', '🐙', '🐲', '🎲', '🍕', '🚀', '🎸', '🎯', '🧩', '🐼',
-  '🎭', '🐺', '🦅', '🐸', '🤖', '👻', '🦉', '🐧', '🦈', '🎩',
-  '🐻', '🦁', '🐯', '🐨', '🐵', '🦎', '🐢', '🦖', '🐳', '🐬',
-  '🦍', '🦏', '🐘', '🦬', '🦣', '🐗', '🦇', '🐊', '🐆', '🐃',
-  '🧠', '🛸', '⚡', '🔥', '💎', '🏴‍☠️', '⚙️', '🗿', '🎪', '🏔️',
-  '🌋', '🧲', '🔭', '🧪', '🛡️', '⚔️', '🏹', '🪓', '🔱', '🪐',
-  '😎', '🤓', '🧐', '😏', '🫡', '🤠', '🥷', '🧙', '🧑‍🚀', '🧑‍💻',
-];
-
 const MAX_MESSAGES_PER_SECOND = 20;
 const IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
 const HOST_ACTIONS = new Set(['set-stories', 'skip-setup', 'story-next', 'story-prev', 'story-goto', 'transfer-host']);
 
-function randomEmojiName(): string {
-  return EMOJI_NAMES[Math.floor(Math.random() * EMOJI_NAMES.length)];
-}
-
 interface PlayerState extends Player {
+  clientId: string;
   isHost: boolean;
 }
 
@@ -73,6 +62,7 @@ export class PokerSession extends DurableObject {
       const attachment = ws.deserializeAttachment() as PlayerAttachment | null;
       if (attachment) {
         this.players.set(ws, {
+          clientId: attachment.clientId,
           name: attachment.name,
           vote: attachment.vote,
           isObserver: attachment.isObserver,
@@ -143,7 +133,13 @@ export class PokerSession extends DurableObject {
     for (const [ws, player] of this.players) {
       if (!player.isObserver) {
         player.isHost = true;
-        ws.serializeAttachment({ name: player.name, vote: player.vote, isObserver: player.isObserver, isHost: true });
+        ws.serializeAttachment({
+          clientId: player.clientId,
+          name: player.name,
+          vote: player.vote,
+          isObserver: player.isObserver,
+          isHost: true,
+        });
         return;
       }
     }
@@ -193,44 +189,53 @@ export class PokerSession extends DurableObject {
 
     switch (type) {
       case 'join': {
-        let name = String(data.name ?? '').trim().slice(0, 30) || randomEmojiName();
+        const clientId = String(data.clientId ?? '').trim();
+        if (!clientId) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Missing client id' }));
+          return;
+        }
+
+        const entries = Array.from(this.players.entries()).map(([socket, player]) => ({ socket, player }));
+        const reconnectPlayer = findReconnectCandidate(
+          entries.map(({ player }) => player),
+          clientId,
+        );
+        const reconnectEntry = entries.find(({ player }) => player === reconnectPlayer) ?? null;
+        const canonicalName = chooseCanonicalName({
+          requestedName: String(data.name ?? ''),
+          existingPlayer: reconnectEntry?.player ?? null,
+          players: entries.map(({ player }) => player),
+        });
+
+        if (reconnectEntry && reconnectEntry.socket !== ws) {
+          this.players.delete(reconnectEntry.socket);
+          this.messageCounts.delete(reconnectEntry.socket);
+          try { reconnectEntry.socket.close(1000, 'Replaced by new connection'); } catch {}
+        }
+
         const isObserver = Boolean(data.isObserver);
-
-        // Check for reconnection: if a player with this exact name already exists
-        // on a different WebSocket, treat it as a reconnect (close old socket, keep state)
-        let isReconnect = false;
-        let reconnectedVote: string | number | null = null;
-        let reconnectedIsHost = false;
-        for (const [existingWs, existingPlayer] of this.players) {
-          if (existingPlayer.name === name && existingWs !== ws) {
-            isReconnect = true;
-            reconnectedVote = existingPlayer.vote;
-            reconnectedIsHost = existingPlayer.isHost;
-            this.players.delete(existingWs);
-            this.messageCounts.delete(existingWs);
-            try { existingWs.close(1000, 'Replaced by new connection'); } catch { /* already closed */ }
-            break;
-          }
-        }
-
-        // Only deduplicate if this isn't a reconnection
-        if (!isReconnect) {
-          const takenNames = new Set(Array.from(this.players.values()).map(p => p.name));
-          if (takenNames.has(name)) {
-            let suffix = 2;
-            while (takenNames.has(name + ' ' + suffix)) suffix++;
-            name = name + ' ' + suffix;
-          }
-        }
 
         const isFirstPlayer = this.players.size === 0 && !this.sessionReady;
         if (!isFirstPlayer && !this.sessionReady) {
           this.sessionReady = true;
         }
-        const shouldBeHost = reconnectedIsHost || (!isObserver && !this.hasHost());
-        const player: PlayerState = { name, vote: reconnectedVote, isObserver, isHost: shouldBeHost };
+        const shouldBeHost = reconnectEntry?.player.isHost ?? (!isObserver && !this.hasHost());
+        const player: PlayerState = {
+          clientId,
+          name: canonicalName,
+          vote: reconnectEntry?.player.vote ?? null,
+          isObserver,
+          isHost: shouldBeHost,
+        };
         this.players.set(ws, player);
-        ws.serializeAttachment({ name, vote: reconnectedVote, isObserver, isHost: shouldBeHost });
+        ws.serializeAttachment(player);
+        ws.send(JSON.stringify({
+          type: 'joined',
+          clientId,
+          name: player.name,
+          isHost: player.isHost,
+          isObserver: player.isObserver,
+        }));
         this.broadcastState();
         break;
       }
@@ -258,7 +263,13 @@ export class PokerSession extends DurableObject {
         } else {
           player.vote = voteValue as string | number;
         }
-        ws.serializeAttachment({ name: player.name, vote: player.vote, isObserver: player.isObserver, isHost: player.isHost });
+        ws.serializeAttachment({
+          clientId: player.clientId,
+          name: player.name,
+          vote: player.vote,
+          isObserver: player.isObserver,
+          isHost: player.isHost,
+        });
         this.broadcastState();
         break;
       }
@@ -313,7 +324,13 @@ export class PokerSession extends DurableObject {
         this.discussionPausedTotal = 0;
         for (const [socket, player] of this.players) {
           player.vote = null;
-          socket.serializeAttachment({ name: player.name, vote: null, isObserver: player.isObserver, isHost: player.isHost });
+          socket.serializeAttachment({
+            clientId: player.clientId,
+            name: player.name,
+            vote: null,
+            isObserver: player.isObserver,
+            isHost: player.isHost,
+          });
         }
         if (this.stories.length > 0 && this.currentStoryIndex < this.stories.length - 1) {
           this.currentStoryIndex++;
@@ -393,9 +410,21 @@ export class PokerSession extends DurableObject {
           if (targetPlayer.name === targetName && !targetPlayer.isObserver) {
             const currentHost = this.players.get(ws)!;
             currentHost.isHost = false;
-            ws.serializeAttachment({ name: currentHost.name, vote: currentHost.vote, isObserver: currentHost.isObserver, isHost: false });
+            ws.serializeAttachment({
+              clientId: currentHost.clientId,
+              name: currentHost.name,
+              vote: currentHost.vote,
+              isObserver: currentHost.isObserver,
+              isHost: false,
+            });
             targetPlayer.isHost = true;
-            targetWs.serializeAttachment({ name: targetPlayer.name, vote: targetPlayer.vote, isObserver: targetPlayer.isObserver, isHost: true });
+            targetWs.serializeAttachment({
+              clientId: targetPlayer.clientId,
+              name: targetPlayer.name,
+              vote: targetPlayer.vote,
+              isObserver: targetPlayer.isObserver,
+              isHost: true,
+            });
             this.broadcastState();
             return;
           }
