@@ -37,7 +37,7 @@ export function renderStorySetup(): string {
     <div class="card entry-card story-setup-card">
       <div class="header">
         <h1>Pointr</h1>
-        <p class="session-label">Optional — add stories to vote on in sequence</p>
+        <p class="session-label">Optional — add tickets to vote on</p>
       </div>
 
       <hr class="divider">
