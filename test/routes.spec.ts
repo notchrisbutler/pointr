@@ -1,12 +1,18 @@
 import { SELF } from "cloudflare:test";
 import { describe, expect, it, vi } from "vitest";
 import app from "../src/index";
+import * as workerModule from "../src/index";
 
 declare module "cloudflare:test" {
   interface ProvidedEnv extends Env {}
 }
 
 describe("worker routes", () => {
+  it("exports only the sqlite durable object class", () => {
+    expect("PokerSession" in workerModule).toBe(false);
+    expect(workerModule.PokerSessionSqlite).toBeDefined();
+  });
+
   it("serves the home page", async () => {
     const response = await SELF.fetch("http://example.com/");
 

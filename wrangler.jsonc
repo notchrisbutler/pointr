@@ -15,6 +15,10 @@
     {
       "tag": "v2",
       "new_sqlite_classes": ["PokerSessionSqlite"]
+    },
+    {
+      "tag": "v3",
+      "deleted_classes": ["PokerSession"]
     }
   ],
   "ratelimits": [
