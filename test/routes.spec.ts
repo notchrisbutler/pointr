@@ -22,6 +22,15 @@ describe("worker routes", () => {
     expect(html).toContain('<script src="/home.js"></script>');
   });
 
+  it("serves the home page with the DOM anchors the browser client expects", async () => {
+    const response = await SELF.fetch("http://example.com/");
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(html).toContain('id="sessionId"');
+    expect(html).toContain('id="join-session-btn"');
+  });
+
   it("rejects invalid info route ids before DO routing", async () => {
     const response = await SELF.fetch("http://example.com/api/INVALID!/info");
 
@@ -45,6 +54,44 @@ describe("worker routes", () => {
     expect(html).not.toMatch(/<script(?![^>]*\bsrc=)/i);
     expect(html).not.toContain("onclick=");
     expect(html).toContain('<script src="/client.js"></script>');
+  });
+
+  it("serves the session route with the DOM anchors the browser client expects", async () => {
+    const response = await SELF.fetch("http://example.com/abc123");
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(html).toContain('<body data-session-id="abc123">');
+    expect(html).toContain('id="lobby"');
+    expect(html).toContain('id="story-setup" class="hidden"');
+    expect(html).toContain('id="session" class="hidden"');
+    expect(html).toContain('id="name-input"');
+    expect(html).toContain('id="join-player-btn"');
+    expect(html).toContain('id="join-observer-btn"');
+    expect(html).toContain('id="join-count"');
+    expect(html).toContain('id="story-add-input"');
+    expect(html).toContain('id="story-add-btn"');
+    expect(html).toContain('id="story-list-items"');
+    expect(html).toContain('id="story-start-btn"');
+    expect(html).toContain('id="story-nav"');
+    expect(html).toContain('id="story-prev-btn"');
+    expect(html).toContain('id="story-next-btn"');
+    expect(html).toContain('id="story-progress"');
+    expect(html).toContain('id="session-id-copy"');
+    expect(html).toContain('id="timer-voting"');
+    expect(html).toContain('id="timer-discussion"');
+    expect(html).toContain('id="story"');
+    expect(html).toContain('id="cards-row"');
+    expect(html).toContain('id="show-votes-btn"');
+    expect(html).toContain('id="new-round-btn"');
+    expect(html).toContain('id="results-row"');
+    expect(html).toContain('id="final-cards"');
+    expect(html).toContain('id="stat-average"');
+    expect(html).toContain('id="stat-median"');
+    expect(html).toContain('id="stat-votes"');
+    expect(html).toContain('id="players-count"');
+    expect(html).toContain('id="players-list"');
+    expect(html).toContain('id="toast"');
   });
 
   it("uses a route-scoped create rate-limit key", async () => {
