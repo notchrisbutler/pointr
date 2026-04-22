@@ -1,8 +1,16 @@
+import {
+  applyJoinedPayload,
+  getOrCreateClientId,
+  shouldReconnect,
+} from "./client-helpers";
+
 export const CLIENT_JS = `(function() {
   'use strict';
 
   // ── State ──
   var ws = null;
+  var selfState = { clientId: '', name: '', amHost: false, isObserver: false };
+  var activeSocketGeneration = 0;
   var name = '';
   var isObserver = false;
   var selectedVote = null;
@@ -47,6 +55,7 @@ export const CLIENT_JS = `(function() {
   var storyProgress = document.getElementById('story-progress');
 
   var sessionId = document.body.dataset.sessionId;
+  var clientId = (${getOrCreateClientId.toString()})(localStorage, sessionId, function() { return crypto.randomUUID(); });
   var joinCountEl = document.getElementById('join-count');
 
   // Fetch player count for lobby
@@ -85,12 +94,14 @@ export const CLIENT_JS = `(function() {
   // ── Connection ──
 
   function connect() {
+    activeSocketGeneration += 1;
+    var socketGeneration = activeSocketGeneration;
     var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     var url = protocol + '//' + location.host + '/ws/' + sessionId;
     ws = new WebSocket(url);
 
     ws.onopen = function() {
-      send({ type: 'join', name: name, isObserver: isObserver });
+      send({ type: 'join', clientId: clientId, name: name, isObserver: isObserver });
     };
 
     ws.onmessage = function(event) {
@@ -100,7 +111,13 @@ export const CLIENT_JS = `(function() {
       } catch (e) {
         return;
       }
-      if (data.type === 'state') {
+      if (data.type === 'joined') {
+        selfState = (${applyJoinedPayload.toString()})(selfState, data);
+        clientId = selfState.clientId;
+        name = selfState.name;
+        amHost = selfState.amHost;
+        isObserver = selfState.isObserver;
+      } else if (data.type === 'state') {
         handleState(data);
       } else if (data.type === 'timeout') {
         timedOut = true;
@@ -111,9 +128,11 @@ export const CLIENT_JS = `(function() {
     };
 
     ws.onclose = function(event) {
-      if (timedOut || event.code === 4000) {
-        timedOut = true;
-        showTimeoutOverlay();
+      if (!(${shouldReconnect.toString()})({ timedOut: timedOut, closeCode: event.code, socketGeneration: socketGeneration, activeGeneration: activeSocketGeneration })) {
+        if (timedOut || event.code === 4000) {
+          timedOut = true;
+          showTimeoutOverlay();
+        }
         return;
       }
       setTimeout(function() {
