@@ -13,12 +13,20 @@ export interface SelfState {
   isObserver: boolean;
 }
 
+type ClientStorage = Pick<
+  {
+    getItem(key: string): string | null;
+    setItem(key: string, value: string): void;
+  },
+  'getItem' | 'setItem'
+>;
+
 export function getClientStorageKey(sessionId: string): string {
   return `pointr:session:${sessionId}:clientId`;
 }
 
 export function getOrCreateClientId(
-  storage: Pick<Storage, "getItem" | "setItem">,
+  storage: ClientStorage,
   sessionId: string,
   createId: () => string,
 ): string {

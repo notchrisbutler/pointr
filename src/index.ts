@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { homePage } from './pages/home';
 import { sessionPage } from './pages/session';
 import { CLIENT_JS } from './client';
+import { isValidSessionId } from './session-id';
 
 type Bindings = Env;
 
@@ -33,17 +34,25 @@ app.post('/create', async (c) => {
 });
 
 app.get('/api/:id/info', async (c) => {
+  const sessionId = c.req.param('id');
+  if (!isValidSessionId(sessionId)) {
+    return c.json({ error: 'Invalid session id' }, 400);
+  }
   const ip = c.req.header('CF-Connecting-IP') || 'unknown';
   const { success } = await c.env.RATE_LIMITER_INFO.limit({ key: ip });
   if (!success) {
     return c.json({ error: 'Rate limit exceeded' }, 429);
   }
-  const id = c.env.POKER_SESSION.idFromName(c.req.param('id'));
+  const id = c.env.POKER_SESSION.idFromName(sessionId);
   const stub = c.env.POKER_SESSION.get(id);
   return stub.fetch(new Request(new URL('/info', c.req.url)));
 });
 
 app.get('/ws/:id', async (c) => {
+  const sessionId = c.req.param('id');
+  if (!isValidSessionId(sessionId)) {
+    return c.text('Invalid session id', 400);
+  }
   const upgradeHeader = c.req.header('Upgrade');
   if (upgradeHeader !== 'websocket') {
     return c.text('Expected WebSocket', 426);
@@ -53,7 +62,7 @@ app.get('/ws/:id', async (c) => {
   if (!success) {
     return c.text('Rate limit exceeded. Try again later.', 429);
   }
-  const id = c.env.POKER_SESSION.idFromName(c.req.param('id'));
+  const id = c.env.POKER_SESSION.idFromName(sessionId);
   const stub = c.env.POKER_SESSION.get(id);
   return stub.fetch(c.req.raw);
 });
@@ -68,9 +77,9 @@ app.get('/client.js', (c) => {
 });
 
 app.get('/:id', (c) => {
-  const id = c.req.param('id');
-  if (id.length > 8 || !/^[a-z0-9]+$/.test(id)) return c.redirect('/');
-  return c.html(sessionPage(id));
+  const sessionId = c.req.param('id');
+  if (!isValidSessionId(sessionId)) return c.redirect('/');
+  return c.html(sessionPage(sessionId));
 });
 
 export default app;
