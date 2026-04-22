@@ -525,3 +525,6 @@ export class PokerSessionSqlite extends DurableObject {
     }
   }
 }
+
+// Keep the legacy KV-backed class exported until a later delete-class migration removes it.
+export class PokerSession extends PokerSessionSqlite {}

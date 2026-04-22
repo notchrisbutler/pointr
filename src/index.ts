@@ -71,7 +71,7 @@ app.get('/ws/:id', async (c) => {
   return stub.fetch(c.req.raw);
 });
 
-export { PokerSessionSqlite } from './session';
+export { PokerSession, PokerSessionSqlite } from './session';
 
 app.get('/client.js', (c) => {
   return c.body(CLIENT_JS, 200, {
