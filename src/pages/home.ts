@@ -223,11 +223,6 @@ export function homePage(): string {
   </style>
 </head>
 <body>
-  <script>
-    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-      document.documentElement.innerHTML = '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pointr</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0f172a;color:#f1f5f9;text-align:center;padding:24px}@media(prefers-color-scheme:light){body{background:#f3f4f6;color:#111827}}.msg{max-width:360px}.msg h1{font-size:2rem;margin-bottom:12px}.msg p{color:#94a3b8;line-height:1.6}@media(prefers-color-scheme:light){.msg p{color:#6b7280}}</style></head><body><div class="msg"><h1>Pointr</h1><p>Pointr is designed for desktop browsers. Please open this link on your computer.</p></div></body>';
-    }
-  </script>
   <div class="page-main">
   <div class="card">
     <div class="header">
@@ -255,8 +250,8 @@ export function homePage(): string {
         >
         <button
           type="button"
+          id="join-session-btn"
           class="btn btn-secondary"
-          onclick="location.href='/'+document.getElementById('sessionId').value"
         >Join</button>
       </div>
     </div>
@@ -265,6 +260,7 @@ export function homePage(): string {
   <footer class="page-footer">
     <a href="https://github.com/notchrisbutler/pointr" target="_blank" rel="noopener">GitHub</a>
   </footer>
+  <script src="/home.js"></script>
 </body>
 </html>`;
 }

@@ -44,4 +44,8 @@ describe("client helpers", () => {
       )
     ).toEqual({ clientId: "client-9", name: "🦊", amHost: true, isObserver: false });
   });
+
+  it("serializes getOrCreateClientId without hidden helper dependencies", () => {
+    expect(getOrCreateClientId.toString()).not.toContain("getClientStorageKey(");
+  });
 });

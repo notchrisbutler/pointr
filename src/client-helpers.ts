@@ -30,7 +30,7 @@ export function getOrCreateClientId(
   sessionId: string,
   createId: () => string,
 ): string {
-  const key = getClientStorageKey(sessionId);
+  const key = `pointr:session:${sessionId}:clientId`;
   const existing = storage.getItem(key);
   if (existing) return existing;
   const next = createId();

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { HOME_CLIENT_JS } from './home-client';
 import { homePage } from './pages/home';
 import { sessionPage } from './pages/session';
 import { CLIENT_JS } from './client';
@@ -74,6 +75,13 @@ export { PokerSessionSqlite } from './session';
 
 app.get('/client.js', (c) => {
   return c.body(CLIENT_JS, 200, {
+    'Content-Type': 'application/javascript',
+    'Cache-Control': 'public, max-age=3600',
+  });
+});
+
+app.get('/home.js', (c) => {
+  return c.body(HOME_CLIENT_JS, 200, {
     'Content-Type': 'application/javascript',
     'Cache-Control': 'public, max-age=3600',
   });

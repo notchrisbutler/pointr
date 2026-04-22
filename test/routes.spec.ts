@@ -13,6 +13,15 @@ describe("worker routes", () => {
     expect(response.status).toBe(200);
   });
 
+  it("serves the home page without inline script execution", async () => {
+    const response = await SELF.fetch("http://example.com/");
+    const html = await response.text();
+
+    expect(html).not.toMatch(/<script(?![^>]*\bsrc=)/i);
+    expect(html).not.toContain("onclick=");
+    expect(html).toContain('<script src="/home.js"></script>');
+  });
+
   it("rejects invalid info route ids before DO routing", async () => {
     const response = await SELF.fetch("http://example.com/api/INVALID!/info");
 
@@ -27,6 +36,15 @@ describe("worker routes", () => {
 
     expect(response.status).toBe(400);
     expect(await response.text()).toBe("Invalid session id");
+  });
+
+  it("serves the session page without inline script execution", async () => {
+    const response = await SELF.fetch("http://example.com/abc123");
+    const html = await response.text();
+
+    expect(html).not.toMatch(/<script(?![^>]*\bsrc=)/i);
+    expect(html).not.toContain("onclick=");
+    expect(html).toContain('<script src="/client.js"></script>');
   });
 
   it("uses a route-scoped create rate-limit key", async () => {
