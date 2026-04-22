@@ -563,13 +563,13 @@ export const SESSION_PAGE_STYLES = `
   }
 `;
 
-export function sessionPage(sessionId: string): string {
+export function sessionPage(sessionId: string, clientScriptPath: string = "/client.js"): string {
   return renderPage({
     title: `Pointr – ${sessionId}`,
     bodyAttributes: `data-session-id="${sessionId}"`,
     styles: `${SHARED_PAGE_STYLES}${SESSION_PAGE_STYLES}`,
     content: `${renderLobby(sessionId)}
 ${renderSessionBoard(sessionId)}`,
-    scriptPath: "/client.js",
+    scriptPath: clientScriptPath,
   });
 }

@@ -148,4 +148,11 @@ describe("sessionPage", () => {
     expect(html).toContain('<script src="/client.js"></script>');
     expect(html).toContain('<footer class="page-footer">');
   });
+
+  it("renders a versioned client script path when a deployment version is provided", () => {
+    const html = sessionPage("abc123", "/client.js?v=deploy-123");
+
+    expect(html).toContain('<script src="/client.js?v=deploy-123"></script>');
+    expect(html).not.toContain('<script src="/client.js"></script>');
+  });
 });

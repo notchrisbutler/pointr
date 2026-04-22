@@ -22,6 +22,15 @@ function createSessionId(): string {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
+function getVersionedClientScriptPath(env: Partial<Pick<Env, 'VERSION_METADATA'>>): string {
+  const versionId = env.VERSION_METADATA?.id?.trim();
+  if (!versionId) {
+    return '/client.js';
+  }
+
+  return `/client.js?v=${encodeURIComponent(versionId)}`;
+}
+
 // Security headers middleware
 app.use('*', async (c, next) => {
   await next();
@@ -106,7 +115,7 @@ app.get('/:id', (c) => {
   const routeSessionId = c.req.param('id');
   if (!isValidSessionId(routeSessionId)) return c.redirect('/');
   const sessionId = normalizeSessionId(routeSessionId);
-  return c.html(sessionPage(sessionId));
+  return c.html(sessionPage(sessionId, getVersionedClientScriptPath(c.env)));
 });
 
 export default app;

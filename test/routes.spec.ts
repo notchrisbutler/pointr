@@ -59,7 +59,25 @@ describe("worker routes", () => {
 
     expect(html).not.toMatch(/<script(?![^>]*\bsrc=)/i);
     expect(html).not.toContain("onclick=");
-    expect(html).toContain('<script src="/client.js"></script>');
+    expect(html).toMatch(/<script src="\/client\.js(?:\?v=[^"]+)?"><\/script>/);
+  });
+
+  it("versions the session client script from worker version metadata", async () => {
+    const response = await app.request(
+      "http://example.com/abc12",
+      undefined,
+      {
+        VERSION_METADATA: {
+          id: "deploy-123",
+          tag: "",
+          timestamp: "2026-04-22T00:00:00.000Z",
+        },
+      } as Env,
+    );
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(html).toContain('<script src="/client.js?v=deploy-123"></script>');
   });
 
   it("redirects invalid direct session routes to the home page", async () => {
