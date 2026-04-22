@@ -85,7 +85,7 @@ describe("worker routes", () => {
     expect(response.status).toBe(200);
     expect(html).toContain('<body data-session-id="abc12">');
     expect(html).toContain('id="lobby"');
-    expect(html).toContain('id="story-setup" class="hidden stage"');
+    expect(html).toContain('id="story-setup" class="hidden stage entry-stage"');
     expect(html).toContain('id="session" class="hidden stage"');
     expect(html).toContain('id="name-input"');
     expect(html).toContain('id="join-player-btn"');

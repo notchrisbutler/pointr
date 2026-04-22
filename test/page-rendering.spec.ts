@@ -31,16 +31,17 @@ describe("renderPage", () => {
 
 describe("SHARED_PAGE_STYLES", () => {
   it("contains shared stage and entry panel primitives", () => {
-    expect(SHARED_PAGE_STYLES).toContain("--stage-top-offset");
     expect(SHARED_PAGE_STYLES).toContain(".stage {");
+    expect(SHARED_PAGE_STYLES).toContain(".entry-stage {");
     expect(SHARED_PAGE_STYLES).toContain(".entry-card {");
     expect(SHARED_PAGE_STYLES).toContain(".field-error {");
+    expect(SHARED_PAGE_STYLES).not.toContain("--stage-top-offset");
     expect(SHARED_PAGE_STYLES).not.toContain(".page-main");
   });
 
   it("allows the document to scroll vertically when entry stages overflow", () => {
     expect(SHARED_PAGE_STYLES).toContain("html, body {");
-    expect(SHARED_PAGE_STYLES).toContain("height: 100%;");
+    expect(SHARED_PAGE_STYLES).toContain("min-height: 100%;");
     expect(SHARED_PAGE_STYLES).not.toContain("overflow: hidden;");
   });
 });
@@ -71,7 +72,7 @@ describe("home page", () => {
   it("renders home content without owning the document shell", () => {
     const content = renderHomeContent();
 
-    expect(content).toContain('<div class="page-main stage">');
+    expect(content).toContain('<div class="stage entry-stage">');
     expect(content).toContain("Create Session");
     expect(content).toContain('id="sessionId"');
     expect(content).not.toContain("<!DOCTYPE html>");
@@ -81,7 +82,7 @@ describe("home page", () => {
   it("renders the inline validation anchor for the join flow", () => {
     const content = renderHomeContent();
 
-    expect(content).toContain('class="page-main stage"');
+    expect(content).toContain('class="stage entry-stage"');
     expect(content).toContain('class="card entry-card"');
     expect(content).toContain('id="sessionId-error"');
     expect(content).toContain('maxlength="5"');
@@ -92,7 +93,7 @@ describe("home page", () => {
 
     expect(html).toContain("<title>Pointr – Planning Poker</title>");
     expect(html).toContain("Fast, free planning poker for agile teams");
-    expect(html).toContain(".page-main {");
+    expect(html).not.toContain(".page-main {");
     expect(html).toContain('<script src="/home.js"></script>');
     expect(html).toContain('<footer class="page-footer">');
   });
@@ -100,9 +101,9 @@ describe("home page", () => {
 
 describe("session sections", () => {
   it("renders the lobby and setup sections inside the shared entry stage", () => {
-    expect(renderLobby("abc12")).toContain('id="lobby" class="stage"');
+    expect(renderLobby("abc12")).toContain('id="lobby" class="stage entry-stage"');
     expect(renderLobby("abc12")).toContain('class="card entry-card"');
-    expect(renderStorySetup()).toContain('id="story-setup" class="hidden stage"');
+    expect(renderStorySetup()).toContain('id="story-setup" class="hidden stage entry-stage"');
     expect(renderStorySetup()).toContain('class="card entry-card story-setup-card"');
   });
 
